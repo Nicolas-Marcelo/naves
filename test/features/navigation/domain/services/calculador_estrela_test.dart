@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:navescence_flutter/features/navigation/data/ambiente_teste.dart';
-import 'package:navescence_flutter/features/';
+import 'package:navescence_flutter/features/navigation/domain/services/calculador_estrela.dart';
 
 void main() {
   const calculador = CalculadorEstrela();
@@ -41,5 +41,11 @@ void main() {
     expect(rota, isNotNull);
     expect(rota!.pontos, ['S2']);
     expect(rota.distancia, 0);
+  });
+
+  test('grafo mantém os vizinhos corretos', () {
+    expect(grafo.vizinhos('S1'), ['S2']);
+    expect(grafo.vizinhos('S2'), ['S1', 'S3']);
+    expect(grafo.vizinhos('S3'), ['S2']);
   });
 }
