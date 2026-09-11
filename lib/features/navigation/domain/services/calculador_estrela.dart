@@ -1,9 +1,10 @@
 import 'dart:math';
-
 import '../entities/grafo.dart';
 import '../entities/ponto.dart';
 import '../entities/rota.dart';
 import 'calculador_rota.dart';
+
+/* Implementa o algoritmo A* auxiliando na navegação do usuário pelo ambiente, calculando o custo das conexões */
 
 class CalculadorEstrela implements CalculadorRota {
   const CalculadorEstrela();

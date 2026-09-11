@@ -1,5 +1,6 @@
 import '../../../../core/config/localization_config.dart';
 
+/*Responsável por filtrar as leituras de cada sensor, assim validando as leituras e aplicando a média de 15 */
 class SensorState {
   SensorState({
     required this.id,
@@ -21,6 +22,7 @@ class SensorState {
         LocalizationConfig.tempoSemSinal;
   }
 
+// Calculamos a média das última 15 leituras que foram validas
   double? get m15 {
     if (_historico.length < LocalizationConfig.tamanhoM15) return null;
 
@@ -45,6 +47,7 @@ class SensorState {
       final ordenados = [...recentes]..sort();
       final mediana = ordenados[ordenados.length ~/ 2];
 
+      // Tira leituras muito fora da reta 
       if ((rssi - mediana).abs() >
           LocalizationConfig.desvioMaximoOutlier) {
         return;

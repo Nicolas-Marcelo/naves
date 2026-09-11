@@ -1,10 +1,13 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import '../../localization/presentation/localization_controller.dart';
+import '../domain/entities/grafo.dart';
+import '../domain/entities/local.dart';
+import '../domain/entities/rota.dart';
+import '../domain/services/calculador_rota.dart';
 
-import '../../../../localization/presentation/localization_controller.dart';
-import '../../../domain/entities/grafo.dart';
-import '../../../domain/entities/local.dart';
-import '../../../domain/entities/rota.dart';
-import '../../../domain/services/calculador_rota.dart';
+/* Responsável por todas funções com relação a navegação do usuário, acompanhando, recalculando e 
+fornecendo as informações ao usuário */
 
 class ControleNavegacao extends ChangeNotifier {
   ControleNavegacao({
@@ -14,6 +17,7 @@ class ControleNavegacao extends ChangeNotifier {
     required this.locais,
   }) {
     localizacao.addListener(_mudouLocalizacao);
+    _configurarVoz();
   }
 
   final LocalizationController localizacao;
@@ -21,15 +25,45 @@ class ControleNavegacao extends ChangeNotifier {
   final CalculadorRota calculador;
   final List<Local> locais;
 
+  final FlutterTts _voz = FlutterTts();
+
   Local? destino;
   Rota? rota;
   String? proximoPonto;
 
   String estado = 'SEM_ROTA';
   String mensagem = 'Escolha um destino.';
+
   String _ultimoPonto = '';
 
   String get pontoAtual => localizacao.noAtual;
+
+  Future<void> _configurarVoz() async {
+    await _voz.setLanguage('pt-BR');
+    await _voz.setSpeechRate(0.5);
+    await _voz.setVolume(1.0);
+  }
+
+  Future<void> _falarSensor(String ponto) async {
+    String? mensagem;
+
+    switch (ponto) {
+      case 'S1':
+        mensagem = 'Embaixo do sensor 1';
+        break;
+      case 'S2':
+        mensagem = 'Embaixo do sensor 2';
+        break;
+      case 'S3':
+        mensagem = 'Embaixo do sensor 3';
+        break;
+    }
+
+    if (mensagem == null) return;
+
+    await _voz.stop();
+    await _voz.speak(mensagem);
+  }
 
   void selecionarDestino(Local? local) {
     destino = local;
@@ -62,6 +96,7 @@ class ControleNavegacao extends ChangeNotifier {
 
     _ultimoPonto = pontoAtual;
     _calcularRota();
+
     notifyListeners();
   }
 
@@ -89,6 +124,7 @@ class ControleNavegacao extends ChangeNotifier {
     }
 
     proximoPonto = rota!.pontos[1];
+
     estado = 'ROTA_ATIVA';
     mensagem = 'Siga em direção ao $proximoPonto.';
   }
@@ -100,12 +136,15 @@ class ControleNavegacao extends ChangeNotifier {
 
     _ultimoPonto = novoPonto;
 
+    _falarSensor(novoPonto);
+
     if (destino == null || rota == null) return;
 
     if (novoPonto == destino!.pontoId) {
       estado = 'DESTINO_ALCANCADO';
       proximoPonto = null;
       mensagem = 'Você chegou ao destino.';
+
       notifyListeners();
       return;
     }
@@ -118,7 +157,8 @@ class ControleNavegacao extends ChangeNotifier {
       estado = 'ROTA_RECALCULADA';
 
       if (proximoPonto != null) {
-        mensagem = 'Caminho diferente detectado. Siga para $proximoPonto.';
+        mensagem =
+            'Caminho diferente detectado. Siga para $proximoPonto.';
       }
     } else if (proximoPonto != null) {
       mensagem = 'Continue em direção ao $proximoPonto.';
@@ -141,6 +181,7 @@ class ControleNavegacao extends ChangeNotifier {
   @override
   void dispose() {
     localizacao.removeListener(_mudouLocalizacao);
+    _voz.stop();
     super.dispose();
   }
 }

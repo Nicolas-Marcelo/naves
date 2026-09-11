@@ -11,6 +11,8 @@ import 'features/navigation/presentation/controle_navegacao.dart';
 import 'presentation/tela_navegacao.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
   final grafo = AmbienteTeste.criarGrafo();
 
   final localizacao = LocalizationController(

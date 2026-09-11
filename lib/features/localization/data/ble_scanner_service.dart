@@ -1,9 +1,10 @@
 import 'dart:async';
-
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-
 import '../../../core/config/beacon_config.dart';
 import '../domain/entities/rssi_reading.dart';
+
+/* Arquivo responsável pela leitura BLE, realizar o scan, identificar os dispositivos através do end MEC,
+além de coletar os valores RSSI e enviar as demais parte dos sistema */
 
 class BleScannerService {
   final _leituras = StreamController<RssiReading>.broadcast();
@@ -40,6 +41,7 @@ class BleScannerService {
     );
   }
 
+// Inicia o processamento dos resultados transformando cada resultado em uma leitura para usarmos
   void _processarResultados(List<ScanResult> resultados) {
     for (final resultado in resultados) {
       final mac = resultado.device.remoteId.str.toUpperCase();
@@ -72,6 +74,7 @@ class BleScannerService {
     }
   }
 
+// Reinicia caso passe mais de 3 segundos sem atualização do sinal
   Future<void> _verificarScanner() async {
     if (_reiniciando) return;
 

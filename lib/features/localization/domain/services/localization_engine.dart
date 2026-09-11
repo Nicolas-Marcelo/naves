@@ -4,6 +4,8 @@ import '../../../navigation/domain/entities/grafo.dart';
 import '../entities/rssi_reading.dart';
 import '../entities/sensor_state.dart';
 
+/* Recebe os valores de M15 e determina a localização do usuário no sistema, além de controlar o handoff */
+
 class LocalizationEngine {
   LocalizationEngine(this.grafo)
       : sensores = {
@@ -20,6 +22,7 @@ class LocalizationEngine {
 
   final List<_AmostraNavegacao> _amostras = [];
 
+  // Ponto onde o usuário esta agora
   String noAtual = '';
 
   String? candidatoInicial;
@@ -130,6 +133,7 @@ class LocalizationEngine {
     final sinalAtual = disponiveis[noAtual];
     if (sinalAtual == null) return;
 
+    // Analisa o grafo do ambiente antes de tentar confirmar o handoff
     final vizinhos = grafo.vizinhos(noAtual);
 
     if (handoffArmado && candidato != null) {
