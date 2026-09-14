@@ -1,5 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Bluetooth para Android 11 ou anterior -->
+
+    <!-- Bluetooth Android 11 ou anterior -->
     <uses-permission
         android:name="android.permission.BLUETOOTH"
         android:maxSdkVersion="30" />
@@ -8,22 +9,38 @@
         android:name="android.permission.BLUETOOTH_ADMIN"
         android:maxSdkVersion="30" />
 
-    <!-- Bluetooth para Android 12 ou superior -->
+    <!-- Bluetooth Android 12 ou superior -->
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
-    <!-- Necessária porque usaremos RSSI para estimar localização -->
+    <!-- Localização utilizada pelo BLE -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
-    <!-- O aplicativo depende de BLE -->
+    <!-- Reconhecimento e comandos de voz -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Speech-to-Text utilizado pelo aplicativo -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Serviço em primeiro plano -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+
+    <!-- Android 13 ou superior -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Feedback acessível -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <uses-feature
         android:name="android.hardware.bluetooth_le"
         android:required="true" />
 
     <application
-        android:label="navescence_flutter"
+        android:label="NAVESCENCE"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -33,37 +50,46 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
-            <!-- Specifies an Android theme to apply to this Activity as soon as
-                 the Android process has started. This theme is visible to the user
-                 while the Flutter UI initializes. After that, this theme continues
-                 to determine the Window background behind the Flutter UI. -->
+
             <meta-data
                 android:name="io.flutter.embedding.android.NormalTheme"
-                android:resource="@style/NormalTheme"
-            />
+                android:resource="@style/NormalTheme" />
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
         </activity>
-        <!-- Don't delete the meta-data below.
-             This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+
+        <service
+            android:name=".WakeWordService"
+            android:enabled="true"
+            android:exported="false"
+            android:stopWithTask="false"
+            android:foregroundServiceType="microphone" />
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-    </application>
-    <!-- Required to query activities that can process text, see:
-         https://developer.android.com/training/package-visibility and
-         https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
 
-         In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
+    </application>
+
     <queries>
+
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT" />
             <data android:mimeType="text/plain" />
         </intent>
+
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE" />
         </intent>
+
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+
     </queries>
+
 </manifest>

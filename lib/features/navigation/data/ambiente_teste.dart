@@ -12,13 +12,23 @@ class AmbienteTeste {
     ),
     Ponto(
       id: 'S2',
-      x: 5,
-      y: 0,
+      x: 0,
+      y: 5,
     ),
     Ponto(
       id: 'S3',
+      x: 0,
+      y: 10,
+    ),
+    Ponto(
+      id: 'S4',
       x: 10,
-      y: 0,
+      y: 10,
+    ),
+    Ponto(
+      id: 'S5',
+      x: 10,
+      y: 5,
     ),
   ];
 
@@ -33,20 +43,58 @@ class AmbienteTeste {
       destino: 'S3',
       distancia: 5,
     ),
+    Conexao(
+      origem: 'S3',
+      destino: 'S4',
+      distancia: 10,
+    ),
+    Conexao(
+      origem: 'S4',
+      destino: 'S5',
+      distancia: 5,
+    ),
   ];
 
   static const locais = [
     Local(
-      nome: 'Ponto 1',
+      nome: 'Entrada',
       pontoId: 'S1',
     ),
     Local(
-      nome: 'Ponto 2',
+      nome: 'Recepção',
+      pontoId: 'S1',
+    ),
+    Local(
+      nome: 'Sala de esportes',
       pontoId: 'S2',
     ),
     Local(
-      nome: 'Ponto 3',
+      nome: 'Sala de Informática',
+      pontoId: 'S2',
+    ),
+    Local(
+      nome: 'Sala da coordenação',
       pontoId: 'S3',
+    ),
+    Local(
+      nome: 'Sala de música',
+      pontoId: 'S3',
+    ),
+    Local(
+      nome: 'Banheiros',
+      pontoId: 'S4',
+    ),
+    Local(
+      nome: 'Depósito',
+      pontoId: 'S4',
+    ),
+    Local(
+      nome: 'Sala de artes',
+      pontoId: 'S5',
+    ),
+    Local(
+      nome: 'Sala Maker',
+      pontoId: 'S5',
     ),
   ];
 
