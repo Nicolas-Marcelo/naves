@@ -11,42 +11,51 @@ class BeaconInfo {
 }
 
 abstract final class BeaconConfig {
-  static const beacons = [
-    BeaconInfo(
-      nodeId: 'S1',
-      nome: 'BEACON_01',
-      mac: '68:09:47:9D:8D:DA',
-    ),
-    BeaconInfo(
-      nodeId: 'S2',
-      nome: 'BEACON_02',
-      mac: '20:9B:A9:69:23:A6',
-    ),
-    BeaconInfo(
-      nodeId: 'S3',
-      nome: 'BEACON_03',
-      mac: '68:09:47:9E:DC:16',
-    ),
-    BeaconInfo(
-      nodeId: 'S4',
-      nome: 'BEACON_04',
-      mac: 'B4:BF:E9:14:A8:82',
-    ),
-
-    BeaconInfo(
-      nodeId: 'S5',
-      nome: 'BEACON_05',
-      mac: 'B4:BF:E9:C0:7F:4A'
-    )
+  static const List<BeaconInfo> beacons = [
+    BeaconInfo(nodeId: 'S1', nome: 'NAV_S01', mac: '68:09:47:9E:DC:16'),
+    BeaconInfo(nodeId: 'S2', nome: 'NAV_S02', mac: '20:9B:A9:69:23:A6'),
+    BeaconInfo(nodeId: 'S3', nome: 'NAV_S03', mac: '68:09:47:9D:8D:DA'),
+    BeaconInfo(nodeId: 'S4', nome: 'NAV_S04', mac: 'B4:BF:E9:C0:7F:4A'),
+    BeaconInfo(nodeId: 'S5', nome: 'NAV_S05', mac: 'B4:BF:E9:14:A8:82'),
   ];
 
   static BeaconInfo? porMac(String mac) {
-    final endereco = mac.toUpperCase();
+    final endereco = _normalizarMac(mac);
 
     for (final beacon in beacons) {
-      if (beacon.mac == endereco) return beacon;
+      if (_normalizarMac(beacon.mac) == endereco) {
+        return beacon;
+      }
     }
 
     return null;
+  }
+
+  static BeaconInfo? porNodeId(String nodeId) {
+    final id = nodeId.trim().toUpperCase();
+
+    for (final beacon in beacons) {
+      if (beacon.nodeId.toUpperCase() == id) {
+        return beacon;
+      }
+    }
+
+    return null;
+  }
+
+  static BeaconInfo? porNome(String nome) {
+    final busca = nome.trim().toUpperCase();
+
+    for (final beacon in beacons) {
+      if (beacon.nome.toUpperCase() == busca) {
+        return beacon;
+      }
+    }
+
+    return null;
+  }
+
+  static String _normalizarMac(String mac) {
+    return mac.trim().toUpperCase().replaceAll('-', ':');
   }
 }

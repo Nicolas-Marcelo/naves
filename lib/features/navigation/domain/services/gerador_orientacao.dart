@@ -2,12 +2,7 @@ import 'dart:math';
 
 import '../entities/ponto.dart';
 
-enum TipoOrientacao {
-  reto,
-  direita,
-  esquerda,
-  retorno,
-}
+enum TipoOrientacao { reto, direita, esquerda, retorno }
 
 class GeradorOrientacao {
   const GeradorOrientacao();
@@ -17,15 +12,9 @@ class GeradorOrientacao {
     required Ponto atual,
     required Ponto proximo,
   }) {
-    final direcaoEntrada = atan2(
-      atual.y - anterior.y,
-      atual.x - anterior.x,
-    );
+    final direcaoEntrada = atan2(atual.y - anterior.y, atual.x - anterior.x);
 
-    final direcaoSaida = atan2(
-      proximo.y - atual.y,
-      proximo.x - atual.x,
-    );
+    final direcaoSaida = atan2(proximo.y - atual.y, proximo.x - atual.x);
 
     var diferenca = direcaoSaida - direcaoEntrada;
 

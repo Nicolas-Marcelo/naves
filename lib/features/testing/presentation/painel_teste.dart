@@ -4,10 +4,7 @@ import '../../localization/presentation/localization_controller.dart';
 import 'controle_teste.dart';
 
 class PainelTeste extends StatefulWidget {
-  const PainelTeste({
-    super.key,
-    required this.localizacao,
-  });
+  const PainelTeste({super.key, required this.localizacao});
 
   final LocalizationController localizacao;
 
@@ -24,9 +21,7 @@ class _PainelTesteState extends State<PainelTeste> {
   void initState() {
     super.initState();
 
-    controle = ControleTeste(
-      localizacao: widget.localizacao,
-    );
+    controle = ControleTeste(localizacao: widget.localizacao);
 
     controle.addListener(_atualizar);
 
@@ -50,14 +45,11 @@ class _PainelTesteState extends State<PainelTeste> {
   }
 
   String _tempo(Duration duracao) {
-    final minutos =
-        duracao.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final minutos = duracao.inMinutes.remainder(60).toString().padLeft(2, '0');
 
-    final segundos =
-        duracao.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final segundos = duracao.inSeconds.remainder(60).toString().padLeft(2, '0');
 
-    final decimos =
-        (duracao.inMilliseconds.remainder(1000) ~/ 100);
+    final decimos = (duracao.inMilliseconds.remainder(1000) ~/ 100);
 
     return '$minutos:$segundos.$decimos';
   }
@@ -96,9 +88,7 @@ class _PainelTesteState extends State<PainelTeste> {
                 width: 9,
                 height: 9,
                 decoration: BoxDecoration(
-                  color: sensor.detectado
-                      ? Colors.green
-                      : Colors.grey,
+                  color: sensor.detectado ? Colors.green : Colors.grey,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -117,9 +107,7 @@ class _PainelTesteState extends State<PainelTeste> {
 
               Text(
                 '${sensor.ultimoRssiRecebido ?? '-'} dBm',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -143,10 +131,7 @@ class _PainelTesteState extends State<PainelTeste> {
           Text(
             'Válidas: ${sensor.leiturasValidas}  •  '
             'Descartadas: ${sensor.leiturasDescartadas}',
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
           ),
         ],
       ),
@@ -157,19 +142,10 @@ class _PainelTesteState extends State<PainelTeste> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          nome,
-          style: TextStyle(
-            fontSize: 10,
-            color: Colors.grey.shade600,
-          ),
-        ),
+        Text(nome, style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
         Text(
           valor,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-          ),
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
         ),
       ],
     );
@@ -185,19 +161,14 @@ class _PainelTesteState extends State<PainelTeste> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: const Color(0xFFD8E0E6),
-        ),
+        border: Border.all(color: const Color(0xFFD8E0E6)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
             children: [
-              Icon(
-                Icons.science_outlined,
-                color: Color(0xFF183B56),
-              ),
+              Icon(Icons.science_outlined, color: Color(0xFF183B56)),
 
               SizedBox(width: 8),
 
@@ -216,10 +187,7 @@ class _PainelTesteState extends State<PainelTeste> {
 
           Text(
             'Registra os sinais, médias, handoffs e os pontos reais do percurso.',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
           ),
 
           const SizedBox(height: 18),
@@ -228,24 +196,15 @@ class _PainelTesteState extends State<PainelTeste> {
             spacing: 22,
             runSpacing: 10,
             children: [
-              _informacao(
-                'Tempo',
-                _tempo(controle.duracao),
-              ),
-              _informacao(
-                'Registros',
-                '${controle.quantidadeRegistros}',
-              ),
+              _informacao('Tempo', _tempo(controle.duracao)),
+              _informacao('Registros', '${controle.quantidadeRegistros}'),
               _informacao(
                 'Estimado',
                 widget.localizacao.noAtual.isEmpty
                     ? '-'
                     : widget.localizacao.noAtual,
               ),
-              _informacao(
-                'Estado',
-                widget.localizacao.estado,
-              ),
+              _informacao('Estado', widget.localizacao.estado),
             ],
           ),
 
@@ -256,17 +215,13 @@ class _PainelTesteState extends State<PainelTeste> {
             runSpacing: 10,
             children: [
               FilledButton.icon(
-                onPressed: controle.executando
-                    ? null
-                    : controle.iniciar,
+                onPressed: controle.executando ? null : controle.iniciar,
                 icon: const Icon(Icons.play_arrow_rounded),
                 label: const Text('INICIAR TESTE'),
               ),
 
               OutlinedButton.icon(
-                onPressed: controle.executando
-                    ? controle.parar
-                    : null,
+                onPressed: controle.executando ? controle.parar : null,
                 icon: const Icon(Icons.stop_rounded),
                 label: const Text('PARAR'),
               ),
@@ -285,20 +240,14 @@ class _PainelTesteState extends State<PainelTeste> {
 
           const Text(
             'Sensor de referência',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
           ),
 
           const SizedBox(height: 6),
 
           Text(
             'Antes de chegar ao sensor, selecione qual será o próximo.',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           ),
 
           const SizedBox(height: 12),
@@ -326,22 +275,16 @@ class _PainelTesteState extends State<PainelTeste> {
             width: double.infinity,
             height: 64,
             child: FilledButton.icon(
-              onPressed: controle.executando &&
-                      sensorSelecionado != null
+              onPressed: controle.executando && sensorSelecionado != null
                   ? () {
-                      controle.marcarSensor(
-                        sensorSelecionado!,
-                      );
+                      controle.marcarSensor(sensorSelecionado!);
                     }
                   : null,
               style: FilledButton.styleFrom(
                 backgroundColor: Colors.deepOrange,
                 foregroundColor: Colors.white,
               ),
-              icon: const Icon(
-                Icons.my_location_rounded,
-                size: 27,
-              ),
+              icon: const Icon(Icons.my_location_rounded, size: 27),
               label: Text(
                 sensorSelecionado == null
                     ? 'SELECIONE O SENSOR'
@@ -358,10 +301,7 @@ class _PainelTesteState extends State<PainelTeste> {
 
           const Text(
             'Leituras em tempo real',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
           ),
 
           const SizedBox(height: 12),
@@ -369,10 +309,7 @@ class _PainelTesteState extends State<PainelTeste> {
           Wrap(
             spacing: 10,
             runSpacing: 10,
-            children: [
-              for (final id in sensores)
-                _sensorCard(id),
-            ],
+            children: [for (final id in sensores) _sensorCard(id)],
           ),
         ],
       ),
@@ -385,20 +322,14 @@ class _PainelTesteState extends State<PainelTeste> {
       children: [
         Text(
           titulo,
-          style: TextStyle(
-            fontSize: 11,
-            color: Colors.grey.shade600,
-          ),
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
         ),
 
         const SizedBox(height: 2),
 
         Text(
           valor,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-          ),
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
         ),
       ],
     );

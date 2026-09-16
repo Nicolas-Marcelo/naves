@@ -4,10 +4,7 @@ import '../features/localization/domain/entities/sensor_state.dart';
 import '../features/localization/presentation/localization_controller.dart';
 
 class TelaLocalizacao extends StatefulWidget {
-  const TelaLocalizacao({
-    super.key,
-    required this.controller,
-  });
+  const TelaLocalizacao({super.key, required this.controller});
 
   final LocalizationController controller;
 
@@ -60,17 +57,12 @@ class _TelaLocalizacaoState extends State<TelaLocalizacao> {
 
     return Card(
       child: ListTile(
-        leading: Icon(
-          atual ? Icons.location_on : Icons.bluetooth,
-        ),
+        leading: Icon(atual ? Icons.location_on : Icons.bluetooth),
         title: Text('${sensor.id} - ${sensor.nome}'),
         subtitle: Text(sensor.detectado ? 'Sinal detectado' : 'Sem sinal'),
         trailing: Text(
           _m15(sensor),
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -81,9 +73,7 @@ class _TelaLocalizacaoState extends State<TelaLocalizacao> {
     final controller = widget.controller;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('NAVESCENCE'),
-      ),
+      appBar: AppBar(title: const Text('NAVESCENCE')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -94,10 +84,7 @@ class _TelaLocalizacaoState extends State<TelaLocalizacao> {
                 children: [
                   const Text(
                     'Localização atual',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(

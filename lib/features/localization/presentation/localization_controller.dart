@@ -32,13 +32,12 @@ class LocalizationController extends ChangeNotifier {
       notifyListeners();
     });
 
-    _timerLocalizacao ??= Timer.periodic(
-      const Duration(milliseconds: 250),
-      (_) {
-        engine.avaliar();
-        notifyListeners();
-      },
-    );
+    _timerLocalizacao ??= Timer.periodic(const Duration(milliseconds: 250), (
+      _,
+    ) {
+      engine.avaliar();
+      notifyListeners();
+    });
 
     await bleService.iniciar();
   }

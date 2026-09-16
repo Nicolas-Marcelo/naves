@@ -7,9 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../localization/presentation/localization_controller.dart';
 
 class ControleTeste extends ChangeNotifier {
-  ControleTeste({
-    required this.localizacao,
-  });
+  ControleTeste({required this.localizacao});
 
   final LocalizationController localizacao;
 
@@ -40,9 +38,7 @@ class ControleTeste extends ChangeNotifier {
 
     executando = true;
 
-    _registrar(
-      evento: 'INICIO_TESTE',
-    );
+    _registrar(evento: 'INICIO_TESTE');
 
     _timer = Timer.periodic(
       const Duration(milliseconds: 250),
@@ -67,9 +63,7 @@ class ControleTeste extends ChangeNotifier {
       evento = 'HANDOFF';
     }
 
-    _registrar(
-      evento: evento,
-    );
+    _registrar(evento: evento);
 
     _ultimoNo = noAtual;
 
@@ -79,10 +73,7 @@ class ControleTeste extends ChangeNotifier {
   void marcarSensor(String sensorId) {
     if (!executando) return;
 
-    _registrar(
-      evento: 'SOB_SENSOR',
-      sensorReferencia: sensorId,
-    );
+    _registrar(evento: 'SOB_SENSOR', sensorReferencia: sensorId);
 
     notifyListeners();
   }
@@ -90,9 +81,7 @@ class ControleTeste extends ChangeNotifier {
   void parar() {
     if (!executando) return;
 
-    _registrar(
-      evento: 'FIM_TESTE',
-    );
+    _registrar(evento: 'FIM_TESTE');
 
     executando = false;
 
@@ -102,10 +91,7 @@ class ControleTeste extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _registrar({
-    required String evento,
-    String sensorReferencia = '',
-  }) {
+  void _registrar({required String evento, String sensorReferencia = ''}) {
     final agora = DateTime.now();
     final engine = localizacao.engine;
 
@@ -122,8 +108,7 @@ class ControleTeste extends ChangeNotifier {
       'pre_candidato': engine.preCandidato ?? '',
       'candidato': engine.candidato ?? '',
       'handoff_armado': engine.handoffArmado,
-      'ultimo_handoff':
-          engine.ultimoHandoffEm?.toIso8601String() ?? '',
+      'ultimo_handoff': engine.ultimoHandoffEm?.toIso8601String() ?? '',
     };
 
     final sensores = localizacao.sensores.keys.toList()..sort();
@@ -134,10 +119,8 @@ class ControleTeste extends ChangeNotifier {
       if (sensor == null) continue;
 
       registro['${id}_detectado'] = sensor.detectado;
-      registro['${id}_rssi_recebido'] =
-          sensor.ultimoRssiRecebido ?? '';
-      registro['${id}_rssi_valido'] =
-          sensor.ultimoRssiValido ?? '';
+      registro['${id}_rssi_recebido'] = sensor.ultimoRssiRecebido ?? '';
+      registro['${id}_rssi_valido'] = sensor.ultimoRssiValido ?? '';
 
       registro['${id}_m5'] = _numero(sensor.m5);
       registro['${id}_m10'] = _numero(sensor.m10);
@@ -145,17 +128,13 @@ class ControleTeste extends ChangeNotifier {
       registro['${id}_m20'] = _numero(sensor.m20);
       registro['${id}_m25'] = _numero(sensor.m25);
 
-      registro['${id}_tendencia'] =
-          _numero(engine.tendencia(id));
+      registro['${id}_tendencia'] = _numero(engine.tendencia(id));
 
-      registro['${id}_recebidas'] =
-          sensor.leiturasRecebidas;
+      registro['${id}_recebidas'] = sensor.leiturasRecebidas;
 
-      registro['${id}_validas'] =
-          sensor.leiturasValidas;
+      registro['${id}_validas'] = sensor.leiturasValidas;
 
-      registro['${id}_descartadas'] =
-          sensor.leiturasDescartadas;
+      registro['${id}_descartadas'] = sensor.leiturasDescartadas;
     }
 
     _registros.add(registro);
@@ -178,16 +157,14 @@ class ControleTeste extends ChangeNotifier {
 
     final cabecalho = colunas.toList();
 
-    final linhas = <String>[
-      cabecalho.map(_escaparCsv).join(','),
-    ];
+    final linhas = <String>[cabecalho.map(_escaparCsv).join(',')];
 
     for (final registro in _registros) {
-      final linha = cabecalho.map((coluna) {
-        return _escaparCsv(
-          '${registro[coluna] ?? ''}',
-        );
-      }).join(',');
+      final linha = cabecalho
+          .map((coluna) {
+            return _escaparCsv('${registro[coluna] ?? ''}');
+          })
+          .join(',');
 
       linhas.add(linha);
     }
@@ -196,9 +173,7 @@ class ControleTeste extends ChangeNotifier {
   }
 
   String _escaparCsv(String valor) {
-    if (valor.contains(',') ||
-        valor.contains('"') ||
-        valor.contains('\n')) {
+    if (valor.contains(',') || valor.contains('"') || valor.contains('\n')) {
       return '"${valor.replaceAll('"', '""')}"';
     }
 
@@ -222,9 +197,7 @@ class ControleTeste extends ChangeNotifier {
         '${_dois(agora.second)}.csv';
 
     final arquivo = XFile.fromData(
-      Uint8List.fromList(
-        utf8.encode(csv),
-      ),
+      Uint8List.fromList(utf8.encode(csv)),
       mimeType: 'text/csv',
     );
 

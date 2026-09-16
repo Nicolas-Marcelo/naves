@@ -4,10 +4,7 @@ import 'ponto.dart';
 /* Representa o grafo do ambiente com pontos e conexões, além das funções que são utilizadas pelo sistema referindo-se a grafos */
 
 class Grafo {
-  const Grafo({
-    required this.pontos,
-    required this.conexoes,
-  });
+  const Grafo({required this.pontos, required this.conexoes});
 
   final List<Ponto> pontos;
   final List<Conexao> conexoes;

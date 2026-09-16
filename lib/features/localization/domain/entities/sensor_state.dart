@@ -4,11 +4,7 @@ import '../../../../core/config/localization_config.dart';
 os valores de RSSI e calculando as médias utilizadas pelo sistema. */
 
 class SensorState {
-  SensorState({
-    required this.id,
-    required this.nome,
-    required this.mac,
-  });
+  SensorState({required this.id, required this.nome, required this.mac});
 
   final String id;
   final String nome;
@@ -35,9 +31,7 @@ class SensorState {
   double? media(int tamanho) {
     if (_historico.length < tamanho) return null;
 
-    final valores = _historico.sublist(
-      _historico.length - tamanho,
-    );
+    final valores = _historico.sublist(_historico.length - tamanho);
 
     return valores.reduce((a, b) => a + b) / valores.length;
   }
@@ -66,8 +60,7 @@ class SensorState {
       final ordenados = [...recentes]..sort();
       final mediana = ordenados[ordenados.length ~/ 2];
 
-      if ((rssi - mediana).abs() >
-          LocalizationConfig.desvioMaximoOutlier) {
+      if ((rssi - mediana).abs() > LocalizationConfig.desvioMaximoOutlier) {
         leiturasDescartadas++;
         return;
       }

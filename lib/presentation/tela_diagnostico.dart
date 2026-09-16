@@ -4,10 +4,7 @@ import '../features/localization/presentation/localization_controller.dart';
 import '../features/testing/presentation/painel_teste.dart';
 
 class TelaDiagnostico extends StatefulWidget {
-  const TelaDiagnostico({
-    super.key,
-    required this.localizacao,
-  });
+  const TelaDiagnostico({super.key, required this.localizacao});
 
   final LocalizationController localizacao;
 
@@ -70,10 +67,7 @@ class _TelaDiagnosticoState extends State<TelaDiagnostico> {
         children: [
           const Row(
             children: [
-              Icon(
-                Icons.memory_rounded,
-                color: _azul,
-              ),
+              Icon(Icons.memory_rounded, color: _azul),
               SizedBox(width: 8),
               Text(
                 'Estado do algoritmo',
@@ -92,34 +86,13 @@ class _TelaDiagnosticoState extends State<TelaDiagnostico> {
             spacing: 28,
             runSpacing: 18,
             children: [
-              _metrica(
-                'Ponto atual',
-                _texto(widget.localizacao.noAtual),
-              ),
-              _metrica(
-                'Estado',
-                widget.localizacao.estado,
-              ),
-              _metrica(
-                'Candidato inicial',
-                _texto(engine.candidatoInicial),
-              ),
-              _metrica(
-                'Pré-candidato',
-                _texto(engine.preCandidato),
-              ),
-              _metrica(
-                'Candidato',
-                _texto(engine.candidato),
-              ),
-              _metrica(
-                'Handoff armado',
-                engine.handoffArmado ? 'SIM' : 'NÃO',
-              ),
-              _metrica(
-                'Último handoff',
-                _horario(engine.ultimoHandoffEm),
-              ),
+              _metrica('Ponto atual', _texto(widget.localizacao.noAtual)),
+              _metrica('Estado', widget.localizacao.estado),
+              _metrica('Candidato inicial', _texto(engine.candidatoInicial)),
+              _metrica('Pré-candidato', _texto(engine.preCandidato)),
+              _metrica('Candidato', _texto(engine.candidato)),
+              _metrica('Handoff armado', engine.handoffArmado ? 'SIM' : 'NÃO'),
+              _metrica('Último handoff', _horario(engine.ultimoHandoffEm)),
             ],
           ),
         ],
@@ -135,18 +108,12 @@ class _TelaDiagnosticoState extends State<TelaDiagnostico> {
         children: [
           Text(
             titulo,
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 3),
           Text(
             valor,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
           ),
         ],
       ),
@@ -168,10 +135,7 @@ class _TelaDiagnosticoState extends State<TelaDiagnostico> {
         children: [
           const Row(
             children: [
-              Icon(
-                Icons.bluetooth_searching_rounded,
-                color: _azul,
-              ),
+              Icon(Icons.bluetooth_searching_rounded, color: _azul),
               SizedBox(width: 8),
               Text(
                 'Sensores BLE',
@@ -189,8 +153,7 @@ class _TelaDiagnosticoState extends State<TelaDiagnostico> {
           for (var i = 0; i < ids.length; i++) ...[
             _sensorCard(ids[i]),
 
-            if (i < ids.length - 1)
-              const SizedBox(height: 12),
+            if (i < ids.length - 1) const SizedBox(height: 12),
           ],
         ],
       ),
@@ -227,9 +190,7 @@ class _TelaDiagnosticoState extends State<TelaDiagnostico> {
                 width: 10,
                 height: 10,
                 decoration: BoxDecoration(
-                  color: sensor.detectado
-                      ? Colors.green
-                      : Colors.grey,
+                  color: sensor.detectado ? Colors.green : Colors.grey,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -249,10 +210,7 @@ class _TelaDiagnosticoState extends State<TelaDiagnostico> {
               Expanded(
                 child: Text(
                   sensor.nome,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                 ),
               ),
 
@@ -273,10 +231,7 @@ class _TelaDiagnosticoState extends State<TelaDiagnostico> {
 
           Text(
             sensor.mac,
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade500,
-            ),
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
           ),
 
           const SizedBox(height: 16),
@@ -297,30 +252,12 @@ class _TelaDiagnosticoState extends State<TelaDiagnostico> {
                     ? '-'
                     : '${sensor.ultimoRssiValido} dBm',
               ),
-              _valorSensor(
-                'M5',
-                _numero(sensor.m5),
-              ),
-              _valorSensor(
-                'M10',
-                _numero(sensor.m10),
-              ),
-              _valorSensor(
-                'M15',
-                _numero(sensor.m15),
-              ),
-              _valorSensor(
-                'M20',
-                _numero(sensor.m20),
-              ),
-              _valorSensor(
-                'M25',
-                _numero(sensor.m25),
-              ),
-              _valorSensor(
-                'Tendência',
-                _numero(tendencia),
-              ),
+              _valorSensor('M5', _numero(sensor.m5)),
+              _valorSensor('M10', _numero(sensor.m10)),
+              _valorSensor('M15', _numero(sensor.m15)),
+              _valorSensor('M20', _numero(sensor.m20)),
+              _valorSensor('M25', _numero(sensor.m25)),
+              _valorSensor('Tendência', _numero(tendencia)),
             ],
           ),
 
@@ -330,10 +267,7 @@ class _TelaDiagnosticoState extends State<TelaDiagnostico> {
             'Recebidas: ${sensor.leiturasRecebidas}   '
             'Válidas: ${sensor.leiturasValidas}   '
             'Descartadas: ${sensor.leiturasDescartadas}',
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
           ),
         ],
       ),
@@ -348,18 +282,12 @@ class _TelaDiagnosticoState extends State<TelaDiagnostico> {
         children: [
           Text(
             titulo,
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 2),
           Text(
             valor,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
           ),
         ],
       ),
@@ -387,10 +315,7 @@ class _TelaDiagnosticoState extends State<TelaDiagnostico> {
             ),
             Text(
               'NAVESCENCE',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 11,
-              ),
+              style: TextStyle(color: Colors.grey, fontSize: 11),
             ),
           ],
         ),
@@ -407,9 +332,7 @@ class _TelaDiagnosticoState extends State<TelaDiagnostico> {
 
             const SizedBox(height: 16),
 
-            PainelTeste(
-              localizacao: widget.localizacao,
-            ),
+            PainelTeste(localizacao: widget.localizacao),
           ],
         ),
       ),

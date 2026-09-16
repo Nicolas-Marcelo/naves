@@ -1,5 +1,5 @@
 abstract final class LocalizationConfig {
-/* Classe com os principais parâmetros utilizados no sistema */
+  /* Classe com os principais parâmetros utilizados no sistema */
 
   static const tamanhoM15 = 15;
 

@@ -5,65 +5,117 @@ import 'package:flutter/services.dart';
 
 class ServicoWakeWord {
   ServicoWakeWord() {
-    _canal.setMethodCallHandler(_receberChamadaNativa);
+    _channel.setMethodCallHandler(
+      _receberEventoAndroid,
+    );
   }
 
-  static const MethodChannel _canal = MethodChannel(
+  static const MethodChannel _channel =
+      MethodChannel(
     'navescence/wake_word',
   );
 
-  final StreamController<String> _comandos =
+  final StreamController<String>
+      _comandosController =
       StreamController<String>.broadcast();
 
-  Stream<String> get comandos => _comandos.stream;
+  final StreamController<void>
+      _timeoutsController =
+      StreamController<void>.broadcast();
 
-  Future<void> _receberChamadaNativa(MethodCall call) async {
-    if (call.method != 'comandoReconhecido') return;
+  final StreamController<void>
+      _wakeWordsController =
+      StreamController<void>.broadcast();
 
-    final comando = call.arguments?.toString().trim();
+  Stream<String> get comandos =>
+      _comandosController.stream;
 
-    if (comando == null || comando.isEmpty) return;
+  Stream<void> get timeouts =>
+      _timeoutsController.stream;
 
-    debugPrint(
-      '[WAKE WORD → FLUTTER] $comando',
-    );
+  Stream<void> get wakeWords =>
+      _wakeWordsController.stream;
 
-    _comandos.add(comando);
+  Future<dynamic> _receberEventoAndroid(
+    MethodCall call,
+  ) async {
+    switch (call.method) {
+      case 'wakeWord':
+        debugPrint(
+          '[WAKE WORD → FLUTTER] NAVE detectado',
+        );
+
+        _wakeWordsController.add(null);
+        break;
+
+      case 'comando':
+        final comando =
+            '${call.arguments ?? ''}'
+                .trim();
+
+        if (comando.isEmpty) {
+          return;
+        }
+
+        debugPrint(
+          '[WAKE WORD → FLUTTER] $comando',
+        );
+
+        _comandosController.add(
+          comando,
+        );
+        break;
+
+      case 'timeout':
+        debugPrint(
+          '[WAKE WORD → FLUTTER] Timeout',
+        );
+
+        _timeoutsController.add(null);
+        break;
+    }
   }
 
   Future<void> iniciar() async {
-    if (kIsWeb) return;
-
-    await _canal.invokeMethod(
-      'iniciar',
-    );
+    try {
+      await _channel.invokeMethod(
+        'iniciar',
+      );
+    } on PlatformException catch (error) {
+      debugPrint(
+        '[WAKE WORD] Erro ao iniciar: '
+        '${error.message}',
+      );
+    }
   }
 
   Future<void> ouvir() async {
-    if (kIsWeb) return;
-
-    await _canal.invokeMethod(
+    await _channel.invokeMethod(
       'ouvir',
     );
   }
 
-  Future<void> pausar() async {
-    if (kIsWeb) return;
+  Future<void> ouvirComando() async {
+    await _channel.invokeMethod(
+      'ouvirComando',
+    );
+  }
 
-    await _canal.invokeMethod(
+  Future<void> pausar() async {
+    await _channel.invokeMethod(
       'pausar',
     );
   }
 
   Future<void> parar() async {
-    if (kIsWeb) return;
-
-    await _canal.invokeMethod(
+    await _channel.invokeMethod(
       'parar',
     );
   }
 
   Future<void> dispose() async {
-    await _comandos.close();
+    await _comandosController.close();
+    await _timeoutsController.close();
+    await _wakeWordsController.close();
   }
 }

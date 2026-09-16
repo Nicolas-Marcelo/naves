@@ -8,14 +8,14 @@ import '../entities/sensor_state.dart';
 
 class LocalizationEngine {
   LocalizationEngine(this.grafo)
-      : sensores = {
-          for (final beacon in BeaconConfig.beacons)
-            beacon.nodeId: SensorState(
-              id: beacon.nodeId,
-              nome: beacon.nome,
-              mac: beacon.mac,
-            ),
-        };
+    : sensores = {
+        for (final beacon in BeaconConfig.beacons)
+          beacon.nodeId: SensorState(
+            id: beacon.nodeId,
+            nome: beacon.nome,
+            mac: beacon.mac,
+          ),
+      };
 
   final Grafo grafo;
   final Map<String, SensorState> sensores;
@@ -40,10 +40,7 @@ class LocalizationEngine {
   String estado = 'PROCURANDO';
 
   void registrarLeitura(RssiReading leitura) {
-    sensores[leitura.nodeId]?.adicionarLeitura(
-      leitura.rssi,
-      leitura.timestamp,
-    );
+    sensores[leitura.nodeId]?.adicionarLeitura(leitura.rssi, leitura.timestamp);
   }
 
   void avaliar() {
@@ -119,10 +116,7 @@ class LocalizationEngine {
     estado = 'CONFIRMANDO_INICIAL';
   }
 
-  void _avaliarHandoff(
-    DateTime agora,
-    Map<String, double> disponiveis,
-  ) {
+  void _avaliarHandoff(DateTime agora, Map<String, double> disponiveis) {
     if (_cooldownAtivo(agora)) {
       _limparPreCandidato();
       _cancelarCandidato();
@@ -137,12 +131,7 @@ class LocalizationEngine {
     final vizinhos = grafo.vizinhos(noAtual);
 
     if (handoffArmado && candidato != null) {
-      _avaliarCandidatoArmado(
-        agora,
-        disponiveis,
-        sinalAtual,
-        vizinhos,
-      );
+      _avaliarCandidatoArmado(agora, disponiveis, sinalAtual, vizinhos);
 
       return;
     }
@@ -152,8 +141,7 @@ class LocalizationEngine {
       final inicio = inicioPreCandidato;
 
       if (inicio == null ||
-          agora.difference(inicio) >
-              LocalizationConfig.janelaPreCandidato ||
+          agora.difference(inicio) > LocalizationConfig.janelaPreCandidato ||
           !vizinhos.contains(sensor) ||
           disponiveis[sensor] == null) {
         _limparPreCandidato();
@@ -268,8 +256,7 @@ class LocalizationEngine {
       final tendenciaVizinho = tendencia(vizinho);
 
       if (tendenciaVizinho == null ||
-          tendenciaVizinho <
-              LocalizationConfig.variacaoMinimaTendencia) {
+          tendenciaVizinho < LocalizationConfig.variacaoMinimaTendencia) {
         continue;
       }
 
@@ -293,15 +280,12 @@ class LocalizationEngine {
 
     if (valorAtual == null) return null;
 
-    final alvo = atual.horario.subtract(
-      LocalizationConfig.tempoTendencia,
-    );
+    final alvo = atual.horario.subtract(LocalizationConfig.tempoTendencia);
 
     _AmostraNavegacao? referencia;
 
     for (final amostra in _amostras) {
-      if (!amostra.horario.isAfter(alvo) &&
-          amostra.valores[pontoId] != null) {
+      if (!amostra.horario.isAfter(alvo) && amostra.valores[pontoId] != null) {
         referencia = amostra;
       } else if (amostra.horario.isAfter(alvo)) {
         break;
@@ -359,10 +343,7 @@ class LocalizationEngine {
 }
 
 class _AmostraNavegacao {
-  const _AmostraNavegacao({
-    required this.horario,
-    required this.valores,
-  });
+  const _AmostraNavegacao({required this.horario, required this.valores});
 
   final DateTime horario;
   final Map<String, double> valores;

@@ -1,10 +1,10 @@
 import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+
 import '../../../core/config/beacon_config.dart';
 import '../domain/entities/rssi_reading.dart';
-
-/* Arquivo responsável pela leitura BLE, realizar o scan, identificar os dispositivos através do end MEC,
-além de coletar os valores RSSI e enviar as demais parte dos sistema */
 
 class BleScannerService {
   final _leituras = StreamController<RssiReading>.broadcast();
@@ -18,8 +18,9 @@ class BleScannerService {
   Stream<RssiReading> get leituras => _leituras.stream;
 
   Future<void> iniciar() async {
-    _scanSubscription ??=
-        FlutterBluePlus.onScanResults.listen(_processarResultados);
+    _scanSubscription ??= FlutterBluePlus.onScanResults.listen(
+      _processarResultados,
+    );
 
     _watchdog ??= Timer.periodic(
       const Duration(seconds: 3),
@@ -41,21 +42,29 @@ class BleScannerService {
     );
   }
 
-// Inicia o processamento dos resultados transformando cada resultado em uma leitura para usarmos
   void _processarResultados(List<ScanResult> resultados) {
     for (final resultado in resultados) {
       final mac = resultado.device.remoteId.str.toUpperCase();
+
       final beacon = BeaconConfig.porMac(mac);
 
       if (beacon == null) continue;
 
-      _ultimaLeitura = DateTime.now();
+      final agora = DateTime.now();
+      _ultimaLeitura = agora;
+
+      debugPrint(
+        '[BLE] ${beacon.nome} | '
+        '${beacon.nodeId} | '
+        'MAC: $mac | '
+        'RSSI: ${resultado.rssi}',
+      );
 
       _leituras.add(
         RssiReading(
           nodeId: beacon.nodeId,
           rssi: resultado.rssi,
-          timestamp: _ultimaLeitura!,
+          timestamp: agora,
         ),
       );
     }
@@ -63,18 +72,22 @@ class BleScannerService {
 
   Future<void> reiniciar() async {
     if (_reiniciando) return;
+
     _reiniciando = true;
 
     try {
-      await FlutterBluePlus.stopScan();
+      if (FlutterBluePlus.isScanningNow) {
+        await FlutterBluePlus.stopScan();
+      }
+
       await Future.delayed(const Duration(milliseconds: 400));
+
       await _iniciarScan();
     } finally {
       _reiniciando = false;
     }
   }
 
-// Reinicia caso passe mais de 3 segundos sem atualização do sinal
   Future<void> _verificarScanner() async {
     if (_reiniciando) return;
 
@@ -85,8 +98,9 @@ class BleScannerService {
 
     if (_ultimaLeitura == null) return;
 
-    if (DateTime.now().difference(_ultimaLeitura!) >
-        const Duration(seconds: 6)) {
+    final tempoSemLeitura = DateTime.now().difference(_ultimaLeitura!);
+
+    if (tempoSemLeitura > const Duration(seconds: 6)) {
       await reiniciar();
     }
   }
@@ -98,11 +112,16 @@ class BleScannerService {
     await _scanSubscription?.cancel();
     _scanSubscription = null;
 
-    await FlutterBluePlus.stopScan();
+    if (FlutterBluePlus.isScanningNow) {
+      await FlutterBluePlus.stopScan();
+    }
   }
 
   Future<void> dispose() async {
     await parar();
-    await _leituras.close();
+
+    if (!_leituras.isClosed) {
+      await _leituras.close();
+    }
   }
 }

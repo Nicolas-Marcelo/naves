@@ -31,10 +31,7 @@ class MapaAmbiente extends StatelessWidget {
         children: [
           const Row(
             children: [
-              Icon(
-                Icons.map_outlined,
-                color: Color(0xFF183B56),
-              ),
+              Icon(Icons.map_outlined, color: Color(0xFF183B56)),
               SizedBox(width: 8),
               Text(
                 'Mapa do ambiente',
@@ -51,10 +48,7 @@ class MapaAmbiente extends StatelessWidget {
 
           Text(
             'Acompanhe sua localização e o caminho até o destino.',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
           ),
 
           const SizedBox(height: 18),
@@ -78,18 +72,9 @@ class MapaAmbiente extends StatelessWidget {
             spacing: 16,
             runSpacing: 8,
             children: [
-              _Legenda(
-                cor: Color(0xFF14866D),
-                texto: 'Você',
-              ),
-              _Legenda(
-                cor: Color(0xFFF59E0B),
-                texto: 'Destino',
-              ),
-              _Legenda(
-                cor: Color(0xFF2563EB),
-                texto: 'Rota',
-              ),
+              _Legenda(cor: Color(0xFF14866D), texto: 'Você'),
+              _Legenda(cor: Color(0xFFF59E0B), texto: 'Destino'),
+              _Legenda(cor: Color(0xFF2563EB), texto: 'Rota'),
             ],
           ),
         ],
@@ -99,10 +84,7 @@ class MapaAmbiente extends StatelessWidget {
 }
 
 class _Legenda extends StatelessWidget {
-  const _Legenda({
-    required this.cor,
-    required this.texto,
-  });
+  const _Legenda({required this.cor, required this.texto});
 
   final Color cor;
   final String texto;
@@ -115,18 +97,12 @@ class _Legenda extends StatelessWidget {
         Container(
           width: 10,
           height: 10,
-          decoration: BoxDecoration(
-            color: cor,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: cor, shape: BoxShape.circle),
         ),
         const SizedBox(width: 6),
         Text(
           texto,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
         ),
       ],
     );
@@ -211,12 +187,7 @@ class _MapaPainter extends CustomPainter {
     if (direita <= esquerda || baixo <= topo) return;
 
     final rect = RRect.fromRectAndRadius(
-      Rect.fromLTRB(
-        esquerda,
-        topo,
-        direita,
-        baixo,
-      ),
+      Rect.fromLTRB(esquerda, topo, direita, baixo),
       const Radius.circular(12),
     );
 
@@ -265,21 +236,14 @@ class _MapaPainter extends CustomPainter {
       final inicio = _posicao(origem, size);
       final fim = _posicao(destino, size);
 
-      final fazParteDaRota = _conexaoNaRota(
-        conexao.origem,
-        conexao.destino,
-      );
+      final fazParteDaRota = _conexaoNaRota(conexao.origem, conexao.destino);
 
       final paint = Paint()
         ..color = fazParteDaRota ? _azul : _cinza
         ..strokeWidth = fazParteDaRota ? 7 : 4
         ..strokeCap = StrokeCap.round;
 
-      canvas.drawLine(
-        inicio,
-        fim,
-        paint,
-      );
+      canvas.drawLine(inicio, fim, paint);
     }
   }
 
@@ -321,49 +285,28 @@ class _MapaPainter extends CustomPainter {
         raio = 18;
       }
 
-      final sombra = Paint()
-        ..color = Colors.black.withValues(alpha: 0.12);
+      final sombra = Paint()..color = Colors.black.withValues(alpha: 0.12);
 
-      canvas.drawCircle(
-        posicao.translate(0, 3),
-        raio + 3,
-        sombra,
-      );
+      canvas.drawCircle(posicao.translate(0, 3), raio + 3, sombra);
 
       final circulo = Paint()
         ..color = cor
         ..style = PaintingStyle.fill;
 
-      canvas.drawCircle(
-        posicao,
-        raio,
-        circulo,
-      );
+      canvas.drawCircle(posicao, raio, circulo);
 
       final borda = Paint()
         ..color = Colors.white
         ..style = PaintingStyle.stroke
         ..strokeWidth = 4;
 
-      canvas.drawCircle(
-        posicao,
-        raio,
-        borda,
-      );
+      canvas.drawCircle(posicao, raio, borda);
 
-      _desenharNomePonto(
-        canvas,
-        ponto,
-        posicao,
-      );
+      _desenharNomePonto(canvas, ponto, posicao);
     }
   }
 
-  void _desenharNomePonto(
-    Canvas canvas,
-    Ponto ponto,
-    Offset posicao,
-  ) {
+  void _desenharNomePonto(Canvas canvas, Ponto ponto, Offset posicao) {
     final texto = TextPainter(
       text: TextSpan(
         text: ponto.id,
@@ -383,10 +326,7 @@ class _MapaPainter extends CustomPainter {
       y = posicao.dy + 22;
     }
 
-    texto.paint(
-      canvas,
-      Offset(x, y),
-    );
+    texto.paint(canvas, Offset(x, y));
   }
 
   @override

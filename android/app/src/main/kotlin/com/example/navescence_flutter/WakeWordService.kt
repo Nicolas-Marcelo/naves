@@ -1,13 +1,10 @@
 package com.example.navescence_flutter
 
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -15,9 +12,8 @@ import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
-import android.speech.tts.TextToSpeech
-import android.speech.tts.UtteranceProgressListener
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import org.json.JSONObject
 import org.vosk.Model
 import org.vosk.Recognizer
@@ -27,651 +23,813 @@ import org.vosk.android.StorageService
 import java.text.Normalizer
 import java.util.Locale
 
-class WakeWordService : Service(), RecognitionListener, TextToSpeech.OnInitListener {
+class WakeWordService : Service(), RecognitionListener {
 
     companion object {
+        private const val TAG = "NAVESCENCE"
+
         const val ACTION_INICIAR =
             "com.example.navescence_flutter.INICIAR_WAKE_WORD"
 
-        const val ACTION_OUVIR =
-            "com.example.navescence_flutter.OUVIR_WAKE_WORD"
+        const val ACTION_OUVIR_NAVE =
+            "com.example.navescence_flutter.OUVIR_NAVE"
+
+        const val ACTION_OUVIR_COMANDO =
+            "com.example.navescence_flutter.OUVIR_COMANDO"
 
         const val ACTION_PAUSAR =
             "com.example.navescence_flutter.PAUSAR_WAKE_WORD"
 
-        const val ACTION_PARAR =
-            "com.example.navescence_flutter.PARAR_WAKE_WORD"
-
         const val ACTION_COMANDO_RECONHECIDO =
             "com.example.navescence_flutter.COMANDO_RECONHECIDO"
 
+        const val ACTION_TIMEOUT_COMANDO =
+            "com.example.navescence_flutter.TIMEOUT_COMANDO"
+
+        const val ACTION_WAKE_WORD_DETECTADA =
+            "com.example.navescence_flutter.WAKE_WORD_DETECTADA"
+
         const val EXTRA_COMANDO = "comando"
 
-        private const val CHANNEL_ID = "navescence_wake_word"
-        private const val NOTIFICATION_ID = 731
-        private const val TAG = "NAVESCENCE"
+        private const val CHANNEL_ID =
+            "navescence_voice"
+
+        private const val NOTIFICATION_ID = 7101
+
+        private const val SAMPLE_RATE = 16000.0f
+
+        private const val TEMPO_COMANDO_VAZIO_MS = 2500L
+        private const val TEMPO_ESTABILIZACAO_MS = 1500L
+        private const val TEMPO_MAXIMO_COMANDO_MS = 6500L
+        private const val INTERVALO_MONITOR_MS = 150L
+
+        private const val DURACAO_VIBRACAO_MS = 140L
     }
 
-    private enum class ModoEscuta {
-        AGUARDANDO_ATIVACAO,
-        RESPONDENDO,
-        AGUARDANDO_COMANDO,
+    private enum class Modo {
+        NAVE,
+        COMANDO,
+        PAUSADO
     }
 
     private var model: Model? = null
     private var recognizer: Recognizer? = null
     private var speechService: SpeechService? = null
 
-    private var modeloCarregando = false
-    private var deveOuvir = false
-    private var escutando = false
+    @Volatile
+    private var modo = Modo.NAVE
 
-    private var ttsPronto = false
-    private var ultimaAtivacao = 0L
+    @Volatile
+    private var comandoParcial = ""
 
-    private var modo = ModoEscuta.AGUARDANDO_ATIVACAO
+    @Volatile
+    private var inicioComando = 0L
 
-    private lateinit var tts: TextToSpeech
+    @Volatile
+    private var ultimaMudancaComando = 0L
 
-    private val handler = Handler(Looper.getMainLooper())
+    private var destruindo = false
+    private var carregandoModelo = false
 
-    private val timeoutComando = Runnable {
-        if (modo != ModoEscuta.AGUARDANDO_COMANDO) return@Runnable
+    private val handler =
+        Handler(Looper.getMainLooper())
 
-        Log.d(
-            TAG,
-            "Tempo do comando esgotado.",
-        )
+    private val monitorComando =
+        object : Runnable {
 
-        speechService?.setPause(true)
+            override fun run() {
+                verificarTempoComando()
 
-        modo = ModoEscuta.RESPONDENDO
-
-        if (ttsPronto) {
-            tts.speak(
-                "Não entendi. Diga Nave novamente.",
-                TextToSpeech.QUEUE_FLUSH,
-                null,
-                "comando_timeout",
-            )
-        } else {
-            handler.postDelayed({
-                voltarParaWakeWord()
-            }, 500)
+                if (!destruindo) {
+                    handler.postDelayed(
+                        this,
+                        INTERVALO_MONITOR_MS
+                    )
+                }
+            }
         }
-    }
 
     override fun onCreate() {
         super.onCreate()
 
         criarCanalNotificacao()
-
-        tts = TextToSpeech(this, this)
-
-        tts.setOnUtteranceProgressListener(
-            object : UtteranceProgressListener() {
-
-                override fun onStart(utteranceId: String?) {}
-
-                override fun onDone(utteranceId: String?) {
-                    when (utteranceId) {
-                        "wake_response" -> {
-                            handler.post {
-                                iniciarModoComando()
-                            }
-                        }
-
-                        "comando_timeout" -> {
-                            handler.post {
-                                voltarParaWakeWord()
-                            }
-                        }
-                    }
-                }
-
-                override fun onError(utteranceId: String?) {
-                    handler.post {
-                        when (utteranceId) {
-                            "wake_response" -> iniciarModoComando()
-                            else -> voltarParaWakeWord()
-                        }
-                    }
-                }
-            },
-        )
-    }
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         iniciarForeground()
 
+        handler.post(monitorComando)
+
+        carregarModelo()
+    }
+
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int
+    ): Int {
+
         when (intent?.action) {
-            ACTION_INICIAR -> {
-                deveOuvir = true
-                carregarModelo()
+            ACTION_OUVIR_NAVE -> {
+                continuarEscuta()
+                voltarParaNave()
             }
 
-            ACTION_OUVIR -> {
-                deveOuvir = true
+            ACTION_OUVIR_COMANDO -> {
+                continuarEscuta()
 
-                if (model == null) {
-                    carregarModelo()
-                } else {
-                    iniciarEscuta()
-                }
+                ativarModoComando(
+                    emitirWakeWord = true
+                )
             }
 
             ACTION_PAUSAR -> {
-                deveOuvir = false
-                pausarEscuta()
+                modo = Modo.PAUSADO
+
+                speechService?.setPause(true)
+
+                Log.d(
+                    TAG,
+                    "Reconhecimento pausado."
+                )
             }
 
-            ACTION_PARAR -> {
-                stopSelf()
-            }
+            ACTION_INICIAR,
+            null -> {
+                continuarEscuta()
 
-            else -> {
-                deveOuvir = true
-                carregarModelo()
+                if (model == null) {
+                    carregarModelo()
+                } else if (speechService == null) {
+                    iniciarReconhecimento()
+                }
             }
         }
 
         return START_STICKY
     }
 
-    private fun iniciarForeground() {
-        val notificacao = criarNotificacao()
+    private fun criarCanalNotificacao() {
+        if (
+            Build.VERSION.SDK_INT >=
+            Build.VERSION_CODES.O
+        ) {
+            val manager =
+                getSystemService(
+                    NotificationManager::class.java
+                )
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                NOTIFICATION_ID,
-                notificacao,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
-            )
-        } else {
-            startForeground(
-                NOTIFICATION_ID,
-                notificacao,
+            val channel =
+                NotificationChannel(
+                    CHANNEL_ID,
+                    "NAVESCENCE Voz",
+                    NotificationManager.IMPORTANCE_LOW
+                )
+
+            channel.description =
+                "Reconhecimento de voz do NAVESCENCE"
+
+            manager.createNotificationChannel(
+                channel
             )
         }
     }
 
-    private fun carregarModelo() {
-        if (model != null || modeloCarregando) return
+    private fun iniciarForeground() {
+        val notification =
+            NotificationCompat.Builder(
+                this,
+                CHANNEL_ID
+            )
+                .setContentTitle(
+                    "NAVESCENCE"
+                )
+                .setContentText(
+                    "Reconhecimento de voz ativo"
+                )
+                .setSmallIcon(
+                    android.R.drawable.ic_btn_speak_now
+                )
+                .setOngoing(true)
+                .build()
 
-        modeloCarregando = true
+        startForeground(
+            NOTIFICATION_ID,
+            notification
+        )
+    }
+
+    private fun carregarModelo() {
+        if (
+            carregandoModelo ||
+            model != null ||
+            destruindo
+        ) {
+            return
+        }
+
+        carregandoModelo = true
 
         Log.d(
             TAG,
-            "Carregando modelo português...",
+            "Carregando modelo Vosk..."
         )
 
         StorageService.unpack(
             this,
             "model-pt",
-            "model-pt-runtime",
-            { modelo ->
-                model = modelo
-                modeloCarregando = false
+            "model-pt",
+            { loadedModel ->
+                carregandoModelo = false
+                model = loadedModel
 
                 Log.d(
                     TAG,
-                    "Modelo Vosk carregado.",
+                    "Modelo Vosk carregado."
                 )
 
-                if (deveOuvir) iniciarEscuta()
+                iniciarReconhecimento()
             },
-            { erro ->
-                modeloCarregando = false
+            { exception ->
+                carregandoModelo = false
 
                 Log.e(
                     TAG,
-                    "Erro ao carregar modelo: ${erro.message}",
-                    erro,
+                    "Erro ao carregar modelo Vosk.",
+                    exception
                 )
-            },
-        )
-    }
-
-    private fun iniciarEscuta() {
-        if (!deveOuvir) return
-
-        try {
-            if (speechService == null) {
-                val modelo = model ?: return
-
-                recognizer = Recognizer(
-                    modelo,
-                    16000.0f,
-                )
-
-                speechService = SpeechService(
-                    recognizer,
-                    16000.0f,
-                )
-
-                speechService?.startListening(this)
-
-                escutando = true
-                modo = ModoEscuta.AGUARDANDO_ATIVACAO
-
-                Log.d(
-                    TAG,
-                    "Microfone ativo. Diga NAVE.",
-                )
-
-                return
             }
-
-            voltarParaWakeWord()
-        } catch (erro: Exception) {
-            Log.e(
-                TAG,
-                "Erro ao iniciar reconhecimento.",
-                erro,
-            )
-        }
-    }
-
-    private fun pausarEscuta() {
-        if (!escutando) return
-
-        handler.removeCallbacks(timeoutComando)
-
-        speechService?.setPause(true)
-
-        Log.d(
-            TAG,
-            "Reconhecimento pausado.",
         )
     }
 
-    private fun processarHipotese(json: String, campo: String) {
+    private fun iniciarReconhecimento() {
+        if (
+            destruindo ||
+            speechService != null
+        ) {
+            return
+        }
+
+        val currentModel =
+            model ?: return
+
         try {
-            val texto =
-                JSONObject(json)
-                    .optString(campo)
-                    .trim()
+            recognizer =
+                Recognizer(
+                    currentModel,
+                    SAMPLE_RATE
+                )
 
-            if (texto.isEmpty()) return
+            speechService =
+                SpeechService(
+                    recognizer,
+                    SAMPLE_RATE
+                )
 
-            val normalizado = normalizar(texto)
+            speechService?.startListening(
+                this
+            )
+
+            modo = Modo.NAVE
 
             Log.d(
                 TAG,
-                "VOSK [$campo]: $texto",
+                "Aguardando NAVE..."
             )
-
-            when (modo) {
-                ModoEscuta.AGUARDANDO_ATIVACAO -> {
-                    if (palavraChaveDetectada(normalizado)) {
-                        ativarAssistente()
-                    }
-                }
-
-                ModoEscuta.AGUARDANDO_COMANDO -> {
-                    if (campo == "text") {
-                        comandoReconhecido(texto)
-                    }
-                }
-
-                ModoEscuta.RESPONDENDO -> {
-                    // Ignora reconhecimento enquanto o sistema fala.
-                }
-            }
-        } catch (erro: Exception) {
+        } catch (exception: Exception) {
             Log.e(
                 TAG,
-                "Erro ao interpretar resultado Vosk.",
-                erro,
+                "Erro ao iniciar reconhecimento.",
+                exception
             )
         }
     }
 
-    private fun palavraChaveDetectada(texto: String): Boolean {
-        val possibilidades = setOf(
-            "nave",
-            "naves",
-        )
-
-        return texto.trim() in possibilidades
+    private fun continuarEscuta() {
+        speechService?.setPause(false)
     }
 
-    private fun ativarAssistente() {
-        if (modo != ModoEscuta.AGUARDANDO_ATIVACAO) return
+    override fun onPartialResult(
+        hypothesis: String?
+    ) {
+        val texto =
+            extrairCampo(
+                hypothesis,
+                "partial"
+            )
 
-        val agora = System.currentTimeMillis()
-
-        if (agora - ultimaAtivacao < 2500) return
-
-        ultimaAtivacao = agora
-        modo = ModoEscuta.RESPONDENDO
+        if (texto.isEmpty()) {
+            return
+        }
 
         Log.d(
             TAG,
-            "PALAVRA-CHAVE DETECTADA!",
+            "VOSK [partial]: $texto"
         )
 
-        speechService?.setPause(true)
+        when (modo) {
+            Modo.NAVE -> {
+                if (ehPalavraChave(texto)) {
+                    ativarModoComando()
+                }
+            }
 
-        vibrar()
+            Modo.COMANDO -> {
+                registrarComandoParcial(
+                    texto
+                )
+            }
 
-        if (ttsPronto) {
-            tts.speak(
-                "Pode falar.",
-                TextToSpeech.QUEUE_FLUSH,
-                null,
-                "wake_response",
-            )
-        } else {
-            iniciarModoComando()
+            Modo.PAUSADO -> Unit
         }
     }
 
-    private fun iniciarModoComando() {
-        if (!deveOuvir) return
+    override fun onResult(
+        hypothesis: String?
+    ) {
+        val texto =
+            extrairCampo(
+                hypothesis,
+                "text"
+            )
 
-        modo = ModoEscuta.AGUARDANDO_COMANDO
+        if (texto.isEmpty()) {
+            return
+        }
+
+        Log.d(
+            TAG,
+            "VOSK [text]: $texto"
+        )
+
+        processarResultadoFinal(
+            texto
+        )
+    }
+
+    override fun onFinalResult(
+        hypothesis: String?
+    ) {
+        if (destruindo) return
+
+        val texto =
+            extrairCampo(
+                hypothesis,
+                "text"
+            )
+
+        if (texto.isEmpty()) {
+            return
+        }
+
+        Log.d(
+            TAG,
+            "VOSK [final]: $texto"
+        )
+
+        processarResultadoFinal(
+            texto
+        )
+    }
+
+    private fun processarResultadoFinal(
+        texto: String
+    ) {
+        when (modo) {
+            Modo.NAVE -> {
+                if (ehPalavraChave(texto)) {
+                    ativarModoComando()
+                }
+            }
+
+            Modo.COMANDO -> {
+                val comando =
+                    removerPalavraChave(
+                        texto
+                    )
+
+                if (comando.isNotEmpty()) {
+                    enviarComando(
+                        comando
+                    )
+                }
+            }
+
+            Modo.PAUSADO -> Unit
+        }
+    }
+
+    private fun ativarModoComando(
+        emitirWakeWord: Boolean = true
+    ) {
+        if (modo == Modo.COMANDO) {
+            return
+        }
+
+        modo = Modo.COMANDO
+
+        comandoParcial = ""
+
+        val agora =
+            System.currentTimeMillis()
+
+        inicioComando = agora
+        ultimaMudancaComando = agora
 
         speechService?.reset()
-        speechService?.setPause(false)
-
-        handler.removeCallbacks(timeoutComando)
-        handler.postDelayed(
-            timeoutComando,
-            8000,
-        )
 
         Log.d(
             TAG,
-            "Aguardando comando...",
+            "PALAVRA-CHAVE DETECTADA!"
+        )
+
+        vibrarInicioEscuta()
+
+        if (emitirWakeWord) {
+            emitirBroadcast(
+                ACTION_WAKE_WORD_DETECTADA
+            )
+        }
+
+        Log.d(
+            TAG,
+            "Aguardando comando..."
         )
     }
 
-    private fun comandoReconhecido(comando: String) {
-        if (modo != ModoEscuta.AGUARDANDO_COMANDO) return
+    private fun vibrarInicioEscuta() {
+        try {
+            if (
+                Build.VERSION.SDK_INT >=
+                Build.VERSION_CODES.S
+            ) {
+                val vibratorManager =
+                    getSystemService(
+                        Context.VIBRATOR_MANAGER_SERVICE
+                    ) as VibratorManager
 
-        handler.removeCallbacks(timeoutComando)
+                val vibrator =
+                    vibratorManager.defaultVibrator
 
-        modo = ModoEscuta.RESPONDENDO
+                vibrator.vibrate(
+                    VibrationEffect.createOneShot(
+                        DURACAO_VIBRACAO_MS,
+                        VibrationEffect.DEFAULT_AMPLITUDE
+                    )
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                val vibrator =
+                    getSystemService(
+                        Context.VIBRATOR_SERVICE
+                    ) as Vibrator
 
-        speechService?.setPause(true)
+                if (
+                    Build.VERSION.SDK_INT >=
+                    Build.VERSION_CODES.O
+                ) {
+                    vibrator.vibrate(
+                        VibrationEffect.createOneShot(
+                            DURACAO_VIBRACAO_MS,
+                            VibrationEffect.DEFAULT_AMPLITUDE
+                        )
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator.vibrate(
+                        DURACAO_VIBRACAO_MS
+                    )
+                }
+            }
+
+            Log.d(
+                TAG,
+                "Vibração de escuta executada."
+            )
+        } catch (exception: Exception) {
+            Log.e(
+                TAG,
+                "Falha ao executar vibração.",
+                exception
+            )
+        }
+    }
+
+    private fun registrarComandoParcial(
+        texto: String
+    ) {
+        val comando =
+            removerPalavraChave(
+                texto
+            )
+
+        if (comando.isEmpty()) {
+            return
+        }
+
+        if (comando != comandoParcial) {
+            comandoParcial = comando
+
+            ultimaMudancaComando =
+                System.currentTimeMillis()
+        }
+    }
+
+    private fun verificarTempoComando() {
+        if (modo != Modo.COMANDO) {
+            return
+        }
+
+        val agora =
+            System.currentTimeMillis()
+
+        val tempoTotal =
+            agora - inicioComando
+
+        if (comandoParcial.isEmpty()) {
+            if (
+                tempoTotal >=
+                TEMPO_COMANDO_VAZIO_MS
+            ) {
+                timeoutComando()
+            }
+
+            return
+        }
+
+        val tempoSemMudanca =
+            agora - ultimaMudancaComando
+
+        if (
+            tempoSemMudanca >=
+            TEMPO_ESTABILIZACAO_MS
+        ) {
+            enviarComando(
+                comandoParcial
+            )
+
+            return
+        }
+
+        if (
+            tempoTotal >=
+            TEMPO_MAXIMO_COMANDO_MS
+        ) {
+            enviarComando(
+                comandoParcial
+            )
+        }
+    }
+
+    private fun enviarComando(
+        texto: String
+    ) {
+        val comando =
+            normalizar(texto)
+
+        if (comando.isEmpty()) {
+            timeoutComando()
+            return
+        }
 
         Log.d(
             TAG,
-            "COMANDO CAPTURADO: $comando",
+            "COMANDO CAPTURADO: $comando"
         )
 
         val intent =
             Intent(
-                ACTION_COMANDO_RECONHECIDO,
+                ACTION_COMANDO_RECONHECIDO
             ).apply {
-                setPackage(packageName)
+                setPackage(
+                    packageName
+                )
+
                 putExtra(
                     EXTRA_COMANDO,
-                    comando,
+                    comando
                 )
             }
 
         sendBroadcast(intent)
 
-        handler.postDelayed({
-            voltarParaWakeWord()
-        }, 800)
+        Log.d(
+            TAG,
+            "Enviando comando para Flutter: $comando"
+        )
+
+        voltarParaNave()
     }
 
-    private fun voltarParaWakeWord() {
-        handler.removeCallbacks(timeoutComando)
+    private fun timeoutComando() {
+        Log.d(
+            TAG,
+            "Timeout de comando."
+        )
 
-        modo = ModoEscuta.AGUARDANDO_ATIVACAO
+        emitirBroadcast(
+            ACTION_TIMEOUT_COMANDO
+        )
 
-        if (!deveOuvir) return
+        voltarParaNave()
+    }
 
-        if (speechService == null) {
-            iniciarEscuta()
+    private fun voltarParaNave() {
+        if (modo == Modo.PAUSADO) {
             return
         }
 
+        modo = Modo.NAVE
+
+        comandoParcial = ""
+        inicioComando = 0L
+        ultimaMudancaComando = 0L
+
         speechService?.reset()
-        speechService?.setPause(false)
 
         Log.d(
             TAG,
-            "Aguardando NAVE...",
+            "Aguardando NAVE..."
         )
     }
 
-    private fun normalizar(texto: String): String {
-        val semAcento =
-            Normalizer.normalize(
-                texto.lowercase(
-                    Locale("pt", "BR"),
+    private fun ehPalavraChave(
+        texto: String
+    ): Boolean {
+        val normalizado =
+            normalizar(texto)
+
+        return normalizado == "nave" ||
+            normalizado == "naves"
+    }
+
+    private fun removerPalavraChave(
+        texto: String
+    ): String {
+        var resultado =
+            normalizar(texto)
+
+        resultado =
+            resultado.replaceFirst(
+                Regex(
+                    """^(naves|nave)\b\s*"""
                 ),
-                Normalizer.Form.NFD,
-            ).replace(
-                Regex("\\p{Mn}+"),
-                "",
+                ""
             )
 
-        return semAcento
+        return resultado.trim()
+    }
+
+    private fun normalizar(
+        texto: String
+    ): String {
+        val semAcentos =
+            Normalizer.normalize(
+                texto,
+                Normalizer.Form.NFD
+            )
+                .replace(
+                    Regex("\\p{M}+"),
+                    ""
+                )
+
+        return semAcentos
+            .lowercase(
+                Locale.ROOT
+            )
             .replace(
-                Regex("[^a-z0-9 ]"),
-                " ",
+                Regex(
+                    "[^a-z0-9\\s]"
+                ),
+                " "
             )
             .replace(
                 Regex("\\s+"),
-                " ",
+                " "
             )
             .trim()
     }
 
-    private fun vibrar() {
-        val vibrator =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val manager =
-                    getSystemService(
-                        Context.VIBRATOR_MANAGER_SERVICE,
-                    ) as VibratorManager
+    private fun extrairCampo(
+        json: String?,
+        campo: String
+    ): String {
+        if (json.isNullOrBlank()) {
+            return ""
+        }
 
-                manager.defaultVibrator
-            } else {
-                @Suppress("DEPRECATION")
-                getSystemService(
-                    Context.VIBRATOR_SERVICE,
-                ) as Vibrator
-            }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(
-                VibrationEffect.createOneShot(
-                    150,
-                    VibrationEffect.DEFAULT_AMPLITUDE,
-                ),
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(150)
+        return try {
+            JSONObject(json)
+                .optString(
+                    campo,
+                    ""
+                )
+                .trim()
+        } catch (_: Exception) {
+            ""
         }
     }
 
-    override fun onPartialResult(hypothesis: String) {
-        processarHipotese(
-            hypothesis,
-            "partial",
+    private fun emitirBroadcast(
+        action: String
+    ) {
+        val intent =
+            Intent(action).apply {
+                setPackage(
+                    packageName
+                )
+            }
+
+        sendBroadcast(
+            intent
         )
     }
 
-    override fun onResult(hypothesis: String) {
-        processarHipotese(
-            hypothesis,
-            "text",
-        )
-    }
+    override fun onError(
+        exception: Exception?
+    ) {
+        if (destruindo) return
 
-    override fun onFinalResult(hypothesis: String) {
-        processarHipotese(
-            hypothesis,
-            "text",
-        )
-    }
-
-    override fun onError(exception: Exception) {
         Log.e(
             TAG,
-            "Erro no reconhecimento: ${exception.message}",
-            exception,
+            "Erro no reconhecimento Vosk.",
+            exception
         )
+
+        if (
+            modo ==
+            Modo.COMANDO
+        ) {
+            emitirBroadcast(
+                ACTION_TIMEOUT_COMANDO
+            )
+        }
+
+        modo = Modo.NAVE
 
         reiniciarReconhecimento()
     }
 
     override fun onTimeout() {
-        Log.d(
-            TAG,
-            "Reconhecimento finalizado por tempo.",
-        )
-
-        reiniciarReconhecimento()
+        if (
+            !destruindo &&
+            modo ==
+                Modo.COMANDO
+        ) {
+            timeoutComando()
+        }
     }
 
     private fun reiniciarReconhecimento() {
-        handler.removeCallbacks(timeoutComando)
+        handler.postDelayed(
+            {
+                if (destruindo) {
+                    return@postDelayed
+                }
 
-        try {
-            speechService?.stop()
-            speechService?.shutdown()
-        } catch (_: Exception) {
-        }
+                try {
+                    speechService
+                        ?.cancel()
 
-        speechService = null
+                    speechService
+                        ?.shutdown()
+                } catch (_: Exception) {
+                }
 
-        try {
-            recognizer?.close()
-        } catch (_: Exception) {
-        }
+                speechService = null
 
-        recognizer = null
-        escutando = false
-        modo = ModoEscuta.AGUARDANDO_ATIVACAO
+                try {
+                    recognizer
+                        ?.close()
+                } catch (_: Exception) {
+                }
 
-        if (deveOuvir) {
-            handler.postDelayed({
-                iniciarEscuta()
-            }, 700)
-        }
-    }
+                recognizer = null
 
-    private fun criarCanalNotificacao() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-
-        val channel =
-            NotificationChannel(
-                CHANNEL_ID,
-                "NAVESCENCE ativo",
-                NotificationManager.IMPORTANCE_LOW,
-            )
-
-        channel.description =
-            "Mantém o reconhecimento por voz do NAVESCENCE disponível."
-
-        val manager =
-            getSystemService(
-                NotificationManager::class.java,
-            )
-
-        manager.createNotificationChannel(
-            channel,
-        )
-    }
-
-    private fun criarNotificacao(): Notification {
-        val abrirApp =
-            Intent(
-                this,
-                MainActivity::class.java,
-            )
-
-        val pendingIntent =
-            PendingIntent.getActivity(
-                this,
-                0,
-                abrirApp,
-                PendingIntent.FLAG_UPDATE_CURRENT or
-                    PendingIntent.FLAG_IMMUTABLE,
-            )
-
-        val builder =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                Notification.Builder(
-                    this,
-                    CHANNEL_ID,
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                Notification.Builder(this)
-            }
-
-        return builder
-            .setContentTitle(
-                "NAVESCENCE ativo",
-            )
-            .setContentText(
-                "Diga NAVE para ativar.",
-            )
-            .setSmallIcon(
-                R.mipmap.ic_launcher,
-            )
-            .setContentIntent(
-                pendingIntent,
-            )
-            .setOngoing(true)
-            .setCategory(
-                Notification.CATEGORY_SERVICE,
-            )
-            .build()
-    }
-
-    override fun onInit(status: Int) {
-        if (status != TextToSpeech.SUCCESS) {
-            Log.e(
-                TAG,
-                "Falha ao iniciar Text-to-Speech.",
-            )
-
-            return
-        }
-
-        tts.language =
-            Locale(
-                "pt",
-                "BR",
-            )
-
-        tts.setSpeechRate(1.05f)
-        tts.setPitch(1.0f)
-
-        ttsPronto = true
-
-        Log.d(
-            TAG,
-            "Text-to-Speech pronto.",
+                iniciarReconhecimento()
+            },
+            500L
         )
     }
 
     override fun onDestroy() {
-        deveOuvir = false
+        destruindo = true
 
-        handler.removeCallbacks(timeoutComando)
+        handler.removeCallbacks(
+            monitorComando
+        )
 
         try {
-            speechService?.stop()
-            speechService?.shutdown()
+            speechService
+                ?.cancel()
+
+            speechService
+                ?.shutdown()
         } catch (_: Exception) {
         }
 
         speechService = null
 
         try {
-            recognizer?.close()
+            recognizer
+                ?.close()
         } catch (_: Exception) {
         }
 
@@ -684,18 +842,12 @@ class WakeWordService : Service(), RecognitionListener, TextToSpeech.OnInitListe
 
         model = null
 
-        if (::tts.isInitialized) {
-            tts.stop()
-            tts.shutdown()
-        }
-
-        Log.d(
-            TAG,
-            "WakeWordService encerrado.",
-        )
-
         super.onDestroy()
     }
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    override fun onBind(
+        intent: Intent?
+    ): IBinder? {
+        return null
+    }
 }
