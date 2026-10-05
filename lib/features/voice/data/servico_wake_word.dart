@@ -42,10 +42,15 @@ class ServicoWakeWord {
     switch (call.method) {
       case 'wakeWord':
         debugPrint(
-          '[WAKE WORD → FLUTTER] NAVE detectado',
+          '[WAKE → FLUTTER] NAVE',
         );
 
-        _wakeWordsController.add(null);
+        if (!_wakeWordsController.isClosed) {
+          _wakeWordsController.add(
+            null,
+          );
+        }
+
         break;
 
       case 'comando':
@@ -58,64 +63,119 @@ class ServicoWakeWord {
         }
 
         debugPrint(
-          '[WAKE WORD → FLUTTER] $comando',
+          '[COMANDO → FLUTTER] $comando',
         );
 
-        _comandosController.add(
-          comando,
-        );
+        if (!_comandosController.isClosed) {
+          _comandosController.add(
+            comando,
+          );
+        }
+
         break;
 
       case 'timeout':
         debugPrint(
-          '[WAKE WORD → FLUTTER] Timeout',
+          '[COMANDO → FLUTTER] Timeout',
         );
 
-        _timeoutsController.add(null);
+        if (!_timeoutsController.isClosed) {
+          _timeoutsController.add(
+            null,
+          );
+        }
+
         break;
     }
   }
 
   Future<void> iniciar() async {
+    if (kIsWeb) return;
+
     try {
       await _channel.invokeMethod(
         'iniciar',
       );
-    } on PlatformException catch (error) {
+    } on PlatformException catch (erro) {
       debugPrint(
-        '[WAKE WORD] Erro ao iniciar: '
-        '${error.message}',
+        '[WAKE] Erro ao iniciar serviço: ${erro.message}',
       );
     }
   }
 
   Future<void> ouvir() async {
-    await _channel.invokeMethod(
-      'ouvir',
-    );
+    if (kIsWeb) return;
+
+    try {
+      await _channel.invokeMethod(
+        'ouvir',
+      );
+    } on PlatformException catch (erro) {
+      debugPrint(
+        '[WAKE] Erro ao iniciar modo Nave: ${erro.message}',
+      );
+    }
   }
 
   Future<void> ouvirComando() async {
-    await _channel.invokeMethod(
-      'ouvirComando',
-    );
+    if (kIsWeb) return;
+
+    try {
+      await _channel.invokeMethod(
+        'ouvirComando',
+      );
+    } on PlatformException catch (erro) {
+      debugPrint(
+        '[WAKE] Erro ao iniciar comando: ${erro.message}',
+      );
+    }
+  }
+
+  Future<void> desligar() async {
+    if (kIsWeb) return;
+
+    try {
+      await _channel.invokeMethod(
+        'desligar',
+      );
+    } on PlatformException catch (erro) {
+      debugPrint(
+        '[WAKE] Erro ao desligar reconhecimento: ${erro.message}',
+      );
+    }
   }
 
   Future<void> pausar() async {
-    await _channel.invokeMethod(
-      'pausar',
-    );
+    await desligar();
   }
 
   Future<void> parar() async {
-    await _channel.invokeMethod(
-      'parar',
-    );
+    if (kIsWeb) return;
+
+    try {
+      await _channel.invokeMethod(
+        'parar',
+      );
+    } on PlatformException catch (erro) {
+      debugPrint(
+        '[WAKE] Erro ao parar serviço: ${erro.message}',
+      );
+    }
   }
 
   Future<void> dispose() async {
-    await _comandosController.close();
-    await _timeoutsController.close();
-    await _wakeWordsController.close();
+    await parar();
+
+    if (!_comandosController.isClosed) {
+      await _comandosController.close();
+    }
+
+    if (!_timeoutsController.isClosed) {
+      await _timeoutsController.close();
+    }
+
+    if (!_wakeWordsController.isClosed) {
+      await _wakeWordsController.close();
+    }
   }
 }

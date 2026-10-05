@@ -1,33 +1,73 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'controle_voz.dart';
 
 class PainelVoz extends StatefulWidget {
-  const PainelVoz({super.key, required this.controle});
+  const PainelVoz({
+    super.key,
+    required this.controle,
+  });
 
   final ControleVoz controle;
 
   @override
-  State<PainelVoz> createState() => _PainelVozState();
+  State<PainelVoz> createState() =>
+      _PainelVozState();
 }
 
-class _PainelVozState extends State<PainelVoz> {
-  static const _azul = Color(0xFF183B56);
+class _PainelVozState
+    extends State<PainelVoz>
+    with WidgetsBindingObserver {
+  static const _azul =
+      Color(0xFF183B56);
 
-  ControleVoz get controle => widget.controle;
+  ControleVoz get controle =>
+      widget.controle;
 
   @override
   void initState() {
     super.initState();
 
-    controle.addListener(_atualizar);
+    WidgetsBinding.instance
+        .addObserver(
+      this,
+    );
 
-    controle.inicializar();
+    controle.addListener(
+      _atualizar,
+    );
+
+    unawaited(
+      controle.inicializar(),
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(
+    AppLifecycleState state,
+  ) {
+    final primeiroPlano =
+        state ==
+        AppLifecycleState.resumed;
+
+    controle
+        .definirAppEmPrimeiroPlano(
+      primeiroPlano,
+    );
   }
 
   @override
   void dispose() {
-    controle.removeListener(_atualizar);
+    WidgetsBinding.instance
+        .removeObserver(
+      this,
+    );
+
+    controle.removeListener(
+      _atualizar,
+    );
 
     super.dispose();
   }
@@ -96,92 +136,155 @@ class _PainelVozState extends State<PainelVoz> {
   }
 
   bool get _podeTocar =>
-      controle.estado == EstadoVoz.pronto ||
-      controle.estado == EstadoVoz.ouvindo ||
-      controle.estado == EstadoVoz.erro;
+      controle.estado ==
+          EstadoVoz.pronto ||
+      controle.estado ==
+          EstadoVoz.ouvindo ||
+      controle.estado ==
+          EstadoVoz.erro;
 
   @override
-  Widget build(BuildContext context) {
-    final cor = _cor;
+  Widget build(
+    BuildContext context,
+  ) {
+    final cor =
+        _cor;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal: 24,
+        vertical: 28,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius:
+            BorderRadius.circular(
+          24,
+        ),
       ),
       child: Column(
         children: [
           Text(
             _titulo,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
+            textAlign:
+                TextAlign.center,
+            style:
+                const TextStyle(
               fontSize: 22,
-              fontWeight: FontWeight.w700,
+              fontWeight:
+                  FontWeight.w700,
               color: _azul,
             ),
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(
+            height: 8,
+          ),
 
           Text(
             controle.mensagem,
-            textAlign: TextAlign.center,
+            textAlign:
+                TextAlign.center,
             style: TextStyle(
               fontSize: 15,
               height: 1.4,
-              color: Colors.grey.shade600,
+              color:
+                  Colors.grey.shade600,
             ),
           ),
 
-          const SizedBox(height: 26),
+          const SizedBox(
+            height: 26,
+          ),
 
           Semantics(
             button: true,
-            label: 'Falar com o NAVESCENCE',
-            hint: 'Toque duas vezes para dizer seu destino',
+            label:
+                'Falar com o NAVESCENCE',
+            hint:
+                'Toque duas vezes para falar um comando',
             child: GestureDetector(
-              onTap: _podeTocar ? controle.alternarEscuta : null,
+              onTap: _podeTocar
+                  ? controle
+                      .alternarEscuta
+                  : null,
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                width: controle.ouvindo ? 118 : 108,
-                height: controle.ouvindo ? 118 : 108,
-                decoration: BoxDecoration(
+                duration:
+                    const Duration(
+                  milliseconds: 250,
+                ),
+                width: controle.ouvindo
+                    ? 118
+                    : 108,
+                height: controle.ouvindo
+                    ? 118
+                    : 108,
+                decoration:
+                    BoxDecoration(
                   color: cor,
-                  shape: BoxShape.circle,
+                  shape:
+                      BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: cor.withValues(alpha: 0.25),
-                      blurRadius: controle.ouvindo ? 24 : 14,
-                      spreadRadius: controle.ouvindo ? 6 : 2,
+                      color:
+                          cor.withValues(
+                        alpha: 0.25,
+                      ),
+                      blurRadius:
+                          controle.ouvindo
+                              ? 24
+                              : 14,
+                      spreadRadius:
+                          controle.ouvindo
+                              ? 6
+                              : 2,
                     ),
                   ],
                 ),
-                child: Icon(_icone, size: 52, color: Colors.white),
+                child: Icon(
+                  _icone,
+                  size: 52,
+                  color:
+                      Colors.white,
+                ),
               ),
             ),
           ),
 
-          const SizedBox(height: 18),
+          const SizedBox(
+            height: 18,
+          ),
 
           Text(
-            controle.ouvindo ? 'Fale agora' : 'TOQUE PARA FALAR',
+            controle.ouvindo
+                ? 'FALE AGORA'
+                : 'TOQUE PARA FALAR',
             style: TextStyle(
               fontSize: 14,
-              fontWeight: FontWeight.w700,
+              fontWeight:
+                  FontWeight.w700,
               color: cor,
               letterSpacing: 0.6,
             ),
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(
+            height: 8,
+          ),
 
-          if (controle.estado == EstadoVoz.pronto)
+          if (controle.estado ==
+              EstadoVoz.pronto)
             Text(
-              'Você também pode dizer “Nave”',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+              'Com o aplicativo ativo, você também pode dizer “Nave”',
+              textAlign:
+                  TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color:
+                    Colors.grey.shade500,
+              ),
             ),
         ],
       ),

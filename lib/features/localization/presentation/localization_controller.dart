@@ -20,6 +20,9 @@ class LocalizationController extends ChangeNotifier {
   StreamSubscription? _leituraSubscription;
   Timer? _timerLocalizacao;
 
+  String _ultimoNoLog = '';
+  String _ultimoEstadoLog = '';
+
   Map<String, SensorState> get sensores => engine.sensores;
   String get noAtual => engine.noAtual;
   String get estado => engine.estado;
@@ -36,14 +39,40 @@ class LocalizationController extends ChangeNotifier {
       _,
     ) {
       engine.avaliar();
+      _registrarMudancas();
       notifyListeners();
     });
 
     await bleService.iniciar();
   }
 
+  void _registrarMudancas() {
+    if (engine.estado != _ultimoEstadoLog) {
+      debugPrint(
+        '[LOCALIZACAO] Estado: '
+        '$_ultimoEstadoLog -> ${engine.estado}',
+      );
+
+      _ultimoEstadoLog = engine.estado;
+    }
+
+    if (engine.noAtual != _ultimoNoLog) {
+      if (_ultimoNoLog.isEmpty) {
+        debugPrint('[LOCALIZACAO] Localização inicial: ${engine.noAtual}');
+      } else {
+        debugPrint(
+          '[LOCALIZACAO] HANDOFF: '
+          '$_ultimoNoLog -> ${engine.noAtual}',
+        );
+      }
+
+      _ultimoNoLog = engine.noAtual;
+    }
+  }
+
   Future<void> reiniciarBle() async {
     if (modoSimulacao) return;
+
     await bleService.reiniciar();
   }
 
@@ -53,11 +82,19 @@ class LocalizationController extends ChangeNotifier {
     engine.noAtual = pontoId;
     engine.estado = 'ASSOCIADO';
 
+    _registrarMudancas();
+
     notifyListeners();
   }
 
   void limpar() {
     engine.limpar();
+
+    _ultimoNoLog = '';
+    _ultimoEstadoLog = '';
+
+    debugPrint('[LOCALIZACAO] Estado reiniciado.');
+
     notifyListeners();
   }
 
@@ -65,7 +102,9 @@ class LocalizationController extends ChangeNotifier {
   void dispose() {
     _timerLocalizacao?.cancel();
     _leituraSubscription?.cancel();
+
     bleService.dispose();
+
     super.dispose();
   }
 }

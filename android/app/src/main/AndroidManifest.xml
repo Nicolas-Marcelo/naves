@@ -1,6 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Bluetooth Android 11 ou anterior -->
     <uses-permission
         android:name="android.permission.BLUETOOTH"
         android:maxSdkVersion="30" />
@@ -9,27 +8,20 @@
         android:name="android.permission.BLUETOOTH_ADMIN"
         android:maxSdkVersion="30" />
 
-    <!-- Bluetooth Android 12 ou superior -->
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
-    <!-- Localização utilizada pelo BLE -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
-    <!-- Reconhecimento e comandos de voz -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
-    <!-- Speech-to-Text utilizado pelo aplicativo -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Serviço em primeiro plano -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
-    <!-- Android 13 ou superior -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Feedback acessível -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <uses-feature
@@ -84,10 +76,6 @@
 
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE" />
-        </intent>
-
-        <intent>
-            <action android:name="android.speech.RecognitionService" />
         </intent>
 
     </queries>

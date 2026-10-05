@@ -4,25 +4,26 @@ import '../../../navigation/domain/entities/grafo.dart';
 import '../entities/rssi_reading.dart';
 import '../entities/sensor_state.dart';
 
-/* Recebe os valores de M15 e determina a localização do usuário no sistema, além de controlar o handoff */
-
+/*
+ * Recebe os valores M15, determina a localização
+ * do usuário e controla o handoff entre sensores.
+ */
 class LocalizationEngine {
   LocalizationEngine(this.grafo)
-    : sensores = {
-        for (final beacon in BeaconConfig.beacons)
-          beacon.nodeId: SensorState(
-            id: beacon.nodeId,
-            nome: beacon.nome,
-            mac: beacon.mac,
-          ),
-      };
+      : sensores = {
+          for (final beacon in BeaconConfig.beacons)
+            beacon.nodeId: SensorState(
+              id: beacon.nodeId,
+              nome: beacon.nome,
+              mac: beacon.mac,
+            ),
+        };
 
   final Grafo grafo;
   final Map<String, SensorState> sensores;
 
   final List<_AmostraNavegacao> _amostras = [];
 
-  // Ponto onde o usuário esta agora
   String noAtual = '';
 
   String? candidatoInicial;
@@ -39,8 +40,13 @@ class LocalizationEngine {
 
   String estado = 'PROCURANDO';
 
-  void registrarLeitura(RssiReading leitura) {
-    sensores[leitura.nodeId]?.adicionarLeitura(leitura.rssi, leitura.timestamp);
+  void registrarLeitura(
+    RssiReading leitura,
+  ) {
+    sensores[leitura.nodeId]?.adicionarLeitura(
+      leitura.rssi,
+      leitura.timestamp,
+    );
   }
 
   void avaliar() {
@@ -48,132 +54,281 @@ class LocalizationEngine {
     final disponiveis = <String, double>{};
 
     for (final sensor in sensores.values) {
-      if (sensor.detectado && sensor.m15 != null) {
-        disponiveis[sensor.id] = sensor.m15!;
+      if (sensor.detectado &&
+          sensor.m15 != null) {
+        disponiveis[sensor.id] =
+            sensor.m15!;
       }
     }
 
-    if (disponiveis.length < 2) return;
+    if (disponiveis.isEmpty) {
+      if (noAtual.isEmpty) {
+        candidatoInicial = null;
+        inicioCandidatoInicial = null;
+        estado = 'PROCURANDO';
+      }
+
+      return;
+    }
 
     _amostras.add(
       _AmostraNavegacao(
         horario: agora,
-        valores: Map<String, double>.from(disponiveis),
+        valores:
+            Map<String, double>.from(
+          disponiveis,
+        ),
       ),
     );
 
     final limite = agora.subtract(
-      LocalizationConfig.tempoTendencia + const Duration(seconds: 3),
+      LocalizationConfig.tempoTendencia +
+          const Duration(seconds: 3),
     );
 
-    _amostras.removeWhere((amostra) => amostra.horario.isBefore(limite));
+    _amostras.removeWhere(
+      (amostra) =>
+          amostra.horario.isBefore(
+        limite,
+      ),
+    );
 
     if (noAtual.isEmpty) {
-      _avaliarAssociacaoInicial(agora, disponiveis);
+      _avaliarAssociacaoInicial(
+        agora,
+        disponiveis,
+      );
+
       return;
     }
 
-    _avaliarHandoff(agora, disponiveis);
+    /*
+     * Para handoff continuamos exigindo pelo menos
+     * dois sensores. Assim preservamos a lógica
+     * já validada de comparação entre o nó atual
+     * e seus vizinhos.
+     */
+    if (disponiveis.length < 2) {
+      return;
+    }
+
+    _avaliarHandoff(
+      agora,
+      disponiveis,
+    );
   }
 
   void _avaliarAssociacaoInicial(
     DateTime agora,
     Map<String, double> disponiveis,
   ) {
-    final ordenados = disponiveis.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+    final ordenados =
+        disponiveis.entries.toList()
+          ..sort(
+            (a, b) =>
+                b.value.compareTo(
+              a.value,
+            ),
+          );
 
-    final maisForte = ordenados[0];
-    final segundo = ordenados[1];
-    final diferenca = maisForte.value - segundo.value;
+    final maisForte =
+        ordenados.first;
 
-    if (diferenca < LocalizationConfig.margemAssociacaoInicial) {
+    /*
+     * Se somente um NAV estiver disponível,
+     * ele pode ser usado para associação inicial.
+     *
+     * Ainda exigimos o mesmo tempo de confirmação
+     * de 1,8 s para evitar uma associação instantânea
+     * a uma leitura isolada.
+     */
+    if (ordenados.length == 1) {
+      _confirmarAssociacaoInicial(
+        agora,
+        maisForte.key,
+      );
+
+      return;
+    }
+
+    final segundo =
+        ordenados[1];
+
+    final diferenca =
+        maisForte.value -
+        segundo.value;
+
+    if (diferenca <
+        LocalizationConfig
+            .margemAssociacaoInicial) {
       candidatoInicial = null;
       inicioCandidatoInicial = null;
       estado = 'PROCURANDO';
+
       return;
     }
 
-    if (candidatoInicial != maisForte.key) {
-      candidatoInicial = maisForte.key;
-      inicioCandidatoInicial = agora;
-    }
-
-    if (inicioCandidatoInicial != null &&
-        agora.difference(inicioCandidatoInicial!) >=
-            LocalizationConfig.tempoAssociacaoInicial) {
-      noAtual = maisForte.key;
-      candidatoInicial = null;
-      inicioCandidatoInicial = null;
-
-      _limparPreCandidato();
-      _cancelarCandidato();
-
-      estado = 'ASSOCIADO';
-      return;
-    }
-
-    estado = 'CONFIRMANDO_INICIAL';
+    _confirmarAssociacaoInicial(
+      agora,
+      maisForte.key,
+    );
   }
 
-  void _avaliarHandoff(DateTime agora, Map<String, double> disponiveis) {
+  void _confirmarAssociacaoInicial(
+    DateTime agora,
+    String sensorId,
+  ) {
+    if (candidatoInicial !=
+        sensorId) {
+      candidatoInicial =
+          sensorId;
+
+      inicioCandidatoInicial =
+          agora;
+
+      estado =
+          'CONFIRMANDO_INICIAL';
+
+      return;
+    }
+
+    if (inicioCandidatoInicial ==
+        null) {
+      inicioCandidatoInicial =
+          agora;
+
+      estado =
+          'CONFIRMANDO_INICIAL';
+
+      return;
+    }
+
+    if (agora.difference(
+          inicioCandidatoInicial!,
+        ) <
+        LocalizationConfig
+            .tempoAssociacaoInicial) {
+      estado =
+          'CONFIRMANDO_INICIAL';
+
+      return;
+    }
+
+    noAtual = sensorId;
+
+    candidatoInicial = null;
+    inicioCandidatoInicial = null;
+
+    _limparPreCandidato();
+    _cancelarCandidato();
+
+    estado = 'ASSOCIADO';
+  }
+
+  void _avaliarHandoff(
+    DateTime agora,
+    Map<String, double> disponiveis,
+  ) {
     if (_cooldownAtivo(agora)) {
       _limparPreCandidato();
       _cancelarCandidato();
+
       estado = 'COOLDOWN';
+
       return;
     }
 
-    final sinalAtual = disponiveis[noAtual];
-    if (sinalAtual == null) return;
+    final sinalAtual =
+        disponiveis[noAtual];
 
-    // Analisa o grafo do ambiente antes de tentar confirmar o handoff
-    final vizinhos = grafo.vizinhos(noAtual);
+    if (sinalAtual == null) {
+      return;
+    }
 
-    if (handoffArmado && candidato != null) {
-      _avaliarCandidatoArmado(agora, disponiveis, sinalAtual, vizinhos);
+    final vizinhos =
+        grafo.vizinhos(
+      noAtual,
+    );
+
+    if (handoffArmado &&
+        candidato != null) {
+      _avaliarCandidatoArmado(
+        agora,
+        disponiveis,
+        sinalAtual,
+        vizinhos,
+      );
 
       return;
     }
 
     if (preCandidato != null) {
-      final sensor = preCandidato!;
-      final inicio = inicioPreCandidato;
+      final sensor =
+          preCandidato!;
+
+      final inicio =
+          inicioPreCandidato;
 
       if (inicio == null ||
-          agora.difference(inicio) > LocalizationConfig.janelaPreCandidato ||
+          agora.difference(inicio) >
+              LocalizationConfig
+                  .janelaPreCandidato ||
           !vizinhos.contains(sensor) ||
-          disponiveis[sensor] == null) {
+          disponiveis[sensor] ==
+              null) {
         _limparPreCandidato();
       } else {
-        final sinalCandidato = disponiveis[sensor]!;
-        final margem = sinalCandidato - sinalAtual;
+        final sinalCandidato =
+            disponiveis[sensor]!;
 
-        estado = 'PRE_CANDIDATO';
+        final margem =
+            sinalCandidato -
+            sinalAtual;
 
-        if (margem >= LocalizationConfig.margemEntradaHandoff) {
-          candidato = sensor;
-          inicioCandidato = agora;
-          handoffArmado = true;
+        estado =
+            'PRE_CANDIDATO';
 
-          estado = 'CONFIRMANDO_HANDOFF';
+        if (margem >=
+            LocalizationConfig
+                .margemEntradaHandoff) {
+          candidato =
+              sensor;
+
+          inicioCandidato =
+              agora;
+
+          handoffArmado =
+              true;
+
+          estado =
+              'CONFIRMANDO_HANDOFF';
 
           _limparPreCandidato();
+
           return;
         }
 
-        final novoCandidato = _buscarPorTendencia(
+        final novoCandidato =
+            _buscarPorTendencia(
           vizinhos,
           disponiveis,
           sinalAtual,
         );
 
-        if (novoCandidato != null && novoCandidato != sensor) {
-          final novoSinal = disponiveis[novoCandidato]!;
+        if (novoCandidato != null &&
+            novoCandidato !=
+                sensor) {
+          final novoSinal =
+              disponiveis[
+                  novoCandidato]!;
 
-          if (novoSinal > sinalCandidato) {
-            preCandidato = novoCandidato;
-            inicioPreCandidato = agora;
+          if (novoSinal >
+              sinalCandidato) {
+            preCandidato =
+                novoCandidato;
+
+            inicioPreCandidato =
+                agora;
           }
         }
 
@@ -181,18 +336,26 @@ class LocalizationEngine {
       }
     }
 
-    final novoPreCandidato = _buscarPorTendencia(
+    final novoPreCandidato =
+        _buscarPorTendencia(
       vizinhos,
       disponiveis,
       sinalAtual,
     );
 
-    if (novoPreCandidato != null) {
-      preCandidato = novoPreCandidato;
-      inicioPreCandidato = agora;
-      estado = 'PRE_CANDIDATO';
+    if (novoPreCandidato !=
+        null) {
+      preCandidato =
+          novoPreCandidato;
+
+      inicioPreCandidato =
+          agora;
+
+      estado =
+          'PRE_CANDIDATO';
     } else {
-      estado = 'ASSOCIADO';
+      estado =
+          'ASSOCIADO';
     }
   }
 
@@ -202,35 +365,58 @@ class LocalizationEngine {
     double sinalAtual,
     List<String> vizinhos,
   ) {
-    final sensor = candidato!;
+    final sensor =
+        candidato!;
 
-    if (!vizinhos.contains(sensor) || disponiveis[sensor] == null) {
+    if (!vizinhos.contains(sensor) ||
+        disponiveis[sensor] ==
+            null) {
       _cancelarCandidato();
-      estado = 'ASSOCIADO';
+
+      estado =
+          'ASSOCIADO';
+
       return;
     }
 
-    final sinalCandidato = disponiveis[sensor]!;
-    final margem = sinalCandidato - sinalAtual;
+    final sinalCandidato =
+        disponiveis[sensor]!;
 
-    if (margem < LocalizationConfig.margemManutencaoHandoff) {
+    final margem =
+        sinalCandidato -
+        sinalAtual;
+
+    if (margem <
+        LocalizationConfig
+            .margemManutencaoHandoff) {
       _cancelarCandidato();
-      estado = 'ASSOCIADO';
+
+      estado =
+          'ASSOCIADO';
+
       return;
     }
 
-    estado = 'CONFIRMANDO_HANDOFF';
+    estado =
+        'CONFIRMANDO_HANDOFF';
 
     if (inicioCandidato != null &&
-        agora.difference(inicioCandidato!) >=
-            LocalizationConfig.tempoConfirmacaoHandoff) {
-      noAtual = sensor;
-      ultimoHandoffEm = agora;
+        agora.difference(
+              inicioCandidato!,
+            ) >=
+            LocalizationConfig
+                .tempoConfirmacaoHandoff) {
+      noAtual =
+          sensor;
+
+      ultimoHandoffEm =
+          agora;
 
       _limparPreCandidato();
       _cancelarCandidato();
 
-      estado = 'ASSOCIADO';
+      estado =
+          'ASSOCIADO';
     }
   }
 
@@ -239,76 +425,146 @@ class LocalizationEngine {
     Map<String, double> disponiveis,
     double sinalAtual,
   ) {
-    final tendenciaAtual = tendencia(noAtual);
+    final tendenciaAtual =
+        tendencia(
+      noAtual,
+    );
 
     if (tendenciaAtual == null ||
-        tendenciaAtual > -LocalizationConfig.variacaoMinimaTendencia) {
+        tendenciaAtual >
+            -LocalizationConfig
+                .variacaoMinimaTendencia) {
       return null;
     }
 
     String? melhorSensor;
-    double melhorPontuacao = double.negativeInfinity;
 
-    for (final vizinho in vizinhos) {
-      final sinalVizinho = disponiveis[vizinho];
-      if (sinalVizinho == null) continue;
+    double melhorPontuacao =
+        double.negativeInfinity;
 
-      final tendenciaVizinho = tendencia(vizinho);
+    for (final vizinho
+        in vizinhos) {
+      final sinalVizinho =
+          disponiveis[vizinho];
 
-      if (tendenciaVizinho == null ||
-          tendenciaVizinho < LocalizationConfig.variacaoMinimaTendencia) {
+      if (sinalVizinho ==
+          null) {
         continue;
       }
 
-      final margem = sinalVizinho - sinalAtual;
-      final pontuacao = (tendenciaVizinho * 2) + margem;
+      final tendenciaVizinho =
+          tendencia(
+        vizinho,
+      );
 
-      if (pontuacao > melhorPontuacao) {
-        melhorPontuacao = pontuacao;
-        melhorSensor = vizinho;
+      if (tendenciaVizinho ==
+              null ||
+          tendenciaVizinho <
+              LocalizationConfig
+                  .variacaoMinimaTendencia) {
+        continue;
+      }
+
+      final margem =
+          sinalVizinho -
+          sinalAtual;
+
+      final pontuacao =
+          (tendenciaVizinho * 2) +
+          margem;
+
+      if (pontuacao >
+          melhorPontuacao) {
+        melhorPontuacao =
+            pontuacao;
+
+        melhorSensor =
+            vizinho;
       }
     }
 
     return melhorSensor;
   }
 
-  double? tendencia(String pontoId) {
-    if (_amostras.length < 2) return null;
+  double? tendencia(
+    String pontoId,
+  ) {
+    if (_amostras.length <
+        2) {
+      return null;
+    }
 
-    final atual = _amostras.last;
-    final valorAtual = atual.valores[pontoId];
+    final atual =
+        _amostras.last;
 
-    if (valorAtual == null) return null;
+    final valorAtual =
+        atual.valores[pontoId];
 
-    final alvo = atual.horario.subtract(LocalizationConfig.tempoTendencia);
+    if (valorAtual == null) {
+      return null;
+    }
 
-    _AmostraNavegacao? referencia;
+    final alvo =
+        atual.horario.subtract(
+      LocalizationConfig
+          .tempoTendencia,
+    );
 
-    for (final amostra in _amostras) {
-      if (!amostra.horario.isAfter(alvo) && amostra.valores[pontoId] != null) {
-        referencia = amostra;
-      } else if (amostra.horario.isAfter(alvo)) {
+    _AmostraNavegacao?
+        referencia;
+
+    for (final amostra
+        in _amostras) {
+      if (!amostra.horario
+              .isAfter(alvo) &&
+          amostra.valores[
+                  pontoId] !=
+              null) {
+        referencia =
+            amostra;
+      } else if (amostra
+          .horario
+          .isAfter(alvo)) {
         break;
       }
     }
 
-    referencia ??= _amostras.firstWhere(
-      (amostra) => amostra.valores[pontoId] != null,
-      orElse: () => atual,
+    referencia ??=
+        _amostras.firstWhere(
+      (amostra) =>
+          amostra.valores[
+              pontoId] !=
+          null,
+      orElse: () =>
+          atual,
     );
 
-    final valorReferencia = referencia.valores[pontoId];
+    final valorReferencia =
+        referencia
+            .valores[pontoId];
 
-    if (valorReferencia == null) return null;
+    if (valorReferencia ==
+        null) {
+      return null;
+    }
 
-    return valorAtual - valorReferencia;
+    return valorAtual -
+        valorReferencia;
   }
 
-  bool _cooldownAtivo(DateTime agora) {
-    if (ultimoHandoffEm == null) return false;
+  bool _cooldownAtivo(
+    DateTime agora,
+  ) {
+    if (ultimoHandoffEm ==
+        null) {
+      return false;
+    }
 
-    return agora.difference(ultimoHandoffEm!) <
-        LocalizationConfig.tempoCooldown;
+    return agora.difference(
+          ultimoHandoffEm!,
+        ) <
+        LocalizationConfig
+            .tempoCooldown;
   }
 
   void _limparPreCandidato() {
@@ -323,7 +579,8 @@ class LocalizationEngine {
   }
 
   void limpar() {
-    for (final sensor in sensores.values) {
+    for (final sensor
+        in sensores.values) {
       sensor.limpar();
     }
 
@@ -336,6 +593,7 @@ class LocalizationEngine {
     _cancelarCandidato();
 
     ultimoHandoffEm = null;
+
     estado = 'PROCURANDO';
 
     _amostras.clear();
@@ -343,7 +601,10 @@ class LocalizationEngine {
 }
 
 class _AmostraNavegacao {
-  const _AmostraNavegacao({required this.horario, required this.valores});
+  const _AmostraNavegacao({
+    required this.horario,
+    required this.valores,
+  });
 
   final DateTime horario;
   final Map<String, double> valores;

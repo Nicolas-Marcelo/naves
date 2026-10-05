@@ -12,11 +12,17 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
 
     companion object {
-        private const val CHANNEL =
+        private const val CHANNEL_WAKE_WORD =
             "navescence/wake_word"
+
+        private const val CHANNEL_FEEDBACK_TATIL =
+            "navescence/feedback_tatil"
     }
 
     private lateinit var wakeWordChannel:
+        MethodChannel
+
+    private lateinit var feedbackTatilChannel:
         MethodChannel
 
     private var receiverRegistrado =
@@ -44,10 +50,13 @@ class MainActivity : FlutterActivity() {
 
                         val comando =
                             intent.getStringExtra(
-                                WakeWordService.EXTRA_COMANDO
+                                WakeWordService
+                                    .EXTRA_COMANDO
                             ) ?: ""
 
-                        if (comando.isNotBlank()) {
+                        if (
+                            comando.isNotBlank()
+                        ) {
                             wakeWordChannel.invokeMethod(
                                 "comando",
                                 comando
@@ -74,12 +83,26 @@ class MainActivity : FlutterActivity() {
             flutterEngine
         )
 
+        configurarCanalWakeWord(
+            flutterEngine
+        )
+
+        configurarCanalFeedbackTatil(
+            flutterEngine
+        )
+
+        registrarReceiver()
+    }
+
+    private fun configurarCanalWakeWord(
+        flutterEngine: FlutterEngine
+    ) {
         wakeWordChannel =
             MethodChannel(
                 flutterEngine
                     .dartExecutor
                     .binaryMessenger,
-                CHANNEL
+                CHANNEL_WAKE_WORD
             )
 
         wakeWordChannel
@@ -91,7 +114,9 @@ class MainActivity : FlutterActivity() {
                     "iniciar" -> {
                         iniciarWakeWordService()
 
-                        result.success(true)
+                        result.success(
+                            true
+                        )
                     }
 
                     "ouvir" -> {
@@ -100,7 +125,9 @@ class MainActivity : FlutterActivity() {
                                 .ACTION_OUVIR_NAVE
                         )
 
-                        result.success(true)
+                        result.success(
+                            true
+                        )
                     }
 
                     "ouvirComando" -> {
@@ -109,16 +136,31 @@ class MainActivity : FlutterActivity() {
                                 .ACTION_OUVIR_COMANDO
                         )
 
-                        result.success(true)
+                        result.success(
+                            true
+                        )
+                    }
+
+                    "desligar" -> {
+                        enviarAcaoServico(
+                            WakeWordService
+                                .ACTION_DESLIGAR
+                        )
+
+                        result.success(
+                            true
+                        )
                     }
 
                     "pausar" -> {
                         enviarAcaoServico(
                             WakeWordService
-                                .ACTION_PAUSAR
+                                .ACTION_DESLIGAR
                         )
 
-                        result.success(true)
+                        result.success(
+                            true
+                        )
                     }
 
                     "parar" -> {
@@ -129,7 +171,9 @@ class MainActivity : FlutterActivity() {
                             )
                         )
 
-                        result.success(true)
+                        result.success(
+                            true
+                        )
                     }
 
                     else -> {
@@ -137,8 +181,46 @@ class MainActivity : FlutterActivity() {
                     }
                 }
             }
+    }
 
-        registrarReceiver()
+    private fun configurarCanalFeedbackTatil(
+        flutterEngine: FlutterEngine
+    ) {
+        feedbackTatilChannel =
+            MethodChannel(
+                flutterEngine
+                    .dartExecutor
+                    .binaryMessenger,
+                CHANNEL_FEEDBACK_TATIL
+            )
+
+        feedbackTatilChannel
+            .setMethodCallHandler {
+                call,
+                result ->
+
+                when (call.method) {
+                    "executar" -> {
+                        val tipo =
+                            call.arguments
+                                ?.toString()
+                                ?: ""
+
+                        FeedbackTatil.executar(
+                            this,
+                            tipo
+                        )
+
+                        result.success(
+                            true
+                        )
+                    }
+
+                    else -> {
+                        result.notImplemented()
+                    }
+                }
+            }
     }
 
     private fun iniciarWakeWordService() {
@@ -148,7 +230,8 @@ class MainActivity : FlutterActivity() {
                 WakeWordService::class.java
             ).apply {
                 action =
-                    WakeWordService.ACTION_INICIAR
+                    WakeWordService
+                        .ACTION_INICIAR
             }
 
         if (
@@ -173,14 +256,19 @@ class MainActivity : FlutterActivity() {
                 this,
                 WakeWordService::class.java
             ).apply {
-                this.action = action
+                this.action =
+                    action
             }
 
-        startService(intent)
+        startService(
+            intent
+        )
     }
 
     private fun registrarReceiver() {
-        if (receiverRegistrado) {
+        if (
+            receiverRegistrado
+        ) {
             return
         }
 
@@ -219,11 +307,14 @@ class MainActivity : FlutterActivity() {
             )
         }
 
-        receiverRegistrado = true
+        receiverRegistrado =
+            true
     }
 
     override fun onDestroy() {
-        if (receiverRegistrado) {
+        if (
+            receiverRegistrado
+        ) {
             try {
                 unregisterReceiver(
                     wakeWordReceiver
@@ -231,7 +322,8 @@ class MainActivity : FlutterActivity() {
             } catch (_: Exception) {
             }
 
-            receiverRegistrado = false
+            receiverRegistrado =
+                false
         }
 
         super.onDestroy()

@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'features/accessibility/data/servico_feedback_tatil.dart';
+
 import 'features/localization/data/ble_scanner_service.dart';
 import 'features/localization/domain/services/localization_engine.dart';
 import 'features/localization/presentation/localization_controller.dart';
@@ -25,6 +27,9 @@ void main() {
   final wakeWord =
       ServicoWakeWord();
 
+  final feedbackTatil =
+      ServicoFeedbackTatil();
+
   final localizacao =
       LocalizationController(
     bleService:
@@ -34,6 +39,9 @@ void main() {
       grafo,
     ),
   );
+
+  late final ControleVoz
+      controleVoz;
 
   final navegacao =
       ControleNavegacao(
@@ -45,12 +53,38 @@ void main() {
         CalculadorEstrela(),
     locais:
         AmbienteTeste.locais,
+    feedbackTatil:
+        feedbackTatil,
+
+    /*
+     * Antes do TTS, liberamos completamente
+     * o microfone do Vosk.
+     */
+    antesDeFalar: () async {
+      await wakeWord.desligar();
+    },
+
+    /*
+     * Depois do TTS, o ControleVoz decide:
+     *
+     * app aberto -> WAKE
+     * rota ativa -> WAKE
+     * fundo sem rota -> DESLIGADO
+     */
+    depoisDeFalar: () async {
+      await controleVoz
+          .retomarModoAutomatico();
+    },
   );
 
-  final controleVoz =
+  controleVoz =
       ControleVoz(
     navegacao:
         navegacao,
+    wakeWord:
+        wakeWord,
+    feedbackTatil:
+        feedbackTatil,
   );
 
   wakeWord.wakeWords.listen(
@@ -69,7 +103,7 @@ void main() {
   wakeWord.comandos.listen(
     (comando) {
       debugPrint(
-        '[NAVESCENCE] Comando recebido do Android: $comando',
+        '[NAVESCENCE] Comando recebido: $comando',
       );
 
       unawaited(
@@ -84,7 +118,7 @@ void main() {
   wakeWord.timeouts.listen(
     (_) {
       debugPrint(
-        '[NAVESCENCE] Timeout de comando recebido.',
+        '[NAVESCENCE] Timeout de comando.',
       );
 
       unawaited(
@@ -94,8 +128,10 @@ void main() {
     },
   );
 
-  // Inicia o Vosk depois que todos os
-  // listeners já estão prontos.
+  /*
+   * Aqui apenas carregamos o serviço/modelo.
+   * Não significa que o microfone ficará ligado.
+   */
   unawaited(
     wakeWord.iniciar(),
   );
@@ -114,7 +150,6 @@ void main() {
 
 class NavescenceApp
     extends StatelessWidget {
-
   const NavescenceApp({
     super.key,
     required this.localizacao,
@@ -142,7 +177,8 @@ class NavescenceApp
           'NAVESCENCE',
       theme:
           ThemeData(
-        useMaterial3: true,
+        useMaterial3:
+            true,
       ),
       home:
           TelaNavegacao(
