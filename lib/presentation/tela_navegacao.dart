@@ -6,6 +6,10 @@ import '../features/navigation/presentation/controle_navegacao.dart';
 import '../features/voice/presentation/controle_voz.dart';
 import '../features/voice/presentation/painel_voz.dart';
 
+import 'widgets/botao_destino.dart';
+import 'widgets/card_localizacao.dart';
+import 'widgets/card_navegacao.dart';
+
 class TelaNavegacao extends StatefulWidget {
   const TelaNavegacao({
     super.key,
@@ -15,346 +19,133 @@ class TelaNavegacao extends StatefulWidget {
   });
 
   final LocalizationController localizacao;
-
   final ControleNavegacao navegacao;
-
   final ControleVoz controleVoz;
 
   @override
-  State<TelaNavegacao> createState() => _TelaNavegacaoState();
+  State<TelaNavegacao> createState() =>
+      _TelaNavegacaoState();
 }
 
-class _TelaNavegacaoState extends State<TelaNavegacao> {
-  static const _azul = Color(0xFF183B56);
+class _TelaNavegacaoState
+    extends State<TelaNavegacao> {
+  static const _azul = Color(0xFF102F46);
+  static const _fundo = Color(0xFFF3F6F8);
 
-  static const _verde = Color(0xFF14866D);
-
-  static const _fundo = Color(0xFFF5F7F9);
+  bool get _navegando =>
+      widget.navegacao.destino != null;
 
   @override
   void initState() {
     super.initState();
 
-    widget.localizacao.addListener(_atualizar);
+    widget.localizacao.addListener(
+      _atualizar,
+    );
 
-    widget.navegacao.addListener(_atualizar);
+    widget.navegacao.addListener(
+      _atualizar,
+    );
 
     widget.localizacao.iniciar();
   }
 
   @override
   void dispose() {
-    widget.localizacao.removeListener(_atualizar);
+    widget.localizacao.removeListener(
+      _atualizar,
+    );
 
-    widget.navegacao.removeListener(_atualizar);
+    widget.navegacao.removeListener(
+      _atualizar,
+    );
 
     super.dispose();
   }
 
   void _atualizar() {
-    if (mounted) {
-      setState(() {});
-    }
+    if (mounted) setState(() {});
   }
 
-  List<String> _locaisDoPonto(String ponto) {
-    return widget.navegacao.locais
-        .where((local) => local.pontoId == ponto)
-        .map((local) => local.nome)
-        .toList();
-  }
-
-  String _juntarNomes(List<String> nomes) {
-    if (nomes.isEmpty) {
-      return '';
-    }
-
-    if (nomes.length == 1) {
-      return nomes.first;
-    }
-
-    if (nomes.length == 2) {
-      return '${nomes[0]} e ${nomes[1]}';
-    }
-
-    return '${nomes.sublist(0, nomes.length - 1).join(', ')} e ${nomes.last}';
-  }
-
-  String _localizacaoAtual() {
-    final ponto = widget.localizacao.noAtual;
-
-    if (ponto.isEmpty) {
-      return 'Localizando você...';
-    }
-
-    final locais = _locaisDoPonto(ponto);
-
-    if (locais.isEmpty) {
-      return 'Localização identificada';
-    }
-
-    return _juntarNomes(locais);
-  }
-
-  Widget _localizacao() {
-    final localizado = widget.localizacao.noAtual.isNotEmpty;
-
-    return Semantics(
-      label: localizado
-          ? 'Você está próximo de ${_localizacaoAtual()}'
-          : 'Localizando você',
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 58,
-              height: 58,
-              decoration: BoxDecoration(
-                color: localizado
-                    ? _verde.withValues(alpha: 0.12)
-                    : _azul.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                localizado
-                    ? Icons.location_on_rounded
-                    : Icons.location_searching_rounded,
-                color: localizado ? _verde : _azul,
-                size: 31,
-              ),
-            ),
-
-            const SizedBox(width: 16),
-
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    localizado ? 'Você está próximo de' : 'Sua localização',
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                  ),
-
-                  const SizedBox(height: 3),
-
-                  Text(
-                    _localizacaoAtual(),
-                    style: const TextStyle(
-                      fontSize: 21,
-                      fontWeight: FontWeight.w700,
-                      color: _azul,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+  Future<void> _selecionarDestino(
+    Local local,
+  ) async {
+    widget.navegacao.selecionarDestino(
+      local,
     );
+
+    await widget.navegacao.iniciarRota();
   }
 
-  Widget _navegacaoAtual() {
-    final navegacao = widget.navegacao;
-
-    if (navegacao.destino == null) {
-      return const SizedBox.shrink();
-    }
-
-    final chegou = navegacao.estado == 'DESTINO_ALCANCADO';
-
-    final cor = chegou ? _verde : _azul;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                chegou ? Icons.flag_rounded : Icons.navigation_rounded,
-                color: cor,
+  Widget _cabecalho() {
+    return Row(
+      children: [
+        Container(
+          width: 45,
+          height: 45,
+          decoration: BoxDecoration(
+            color: _azul,
+            borderRadius: BorderRadius.circular(
+              14,
+            ),
+          ),
+          child: const Center(
+            child: Text(
+              'N',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 25,
+                fontWeight: FontWeight.w900,
               ),
-
-              const SizedBox(width: 9),
-
-              Expanded(
-                child: Text(
-                  chegou ? 'Destino alcançado' : 'Indo para',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: cor,
-                  ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        const Expanded(
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              Text(
+                'NAVESCENCE',
+                style: TextStyle(
+                  color: _azul,
+                  fontSize: 20,
+                  height: 1,
+                  letterSpacing: 0.8,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Navegação assistiva indoor',
+                style: TextStyle(
+                  color: Color(0xFF71818A),
+                  fontSize: 12,
                 ),
               ),
             ],
           ),
-
-          const SizedBox(height: 8),
-
-          Text(
-            navegacao.destino!.nome,
-            style: const TextStyle(
-              fontSize: 27,
-              fontWeight: FontWeight.w800,
-              color: _azul,
-            ),
-          ),
-
-          const SizedBox(height: 22),
-
-          Text(
-            chegou ? 'Você chegou.' : navegacao.orientacaoAtual,
-            style: const TextStyle(
-              fontSize: 23,
-              height: 1.3,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF263238),
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          SizedBox(
-            width: double.infinity,
-            height: 54,
-            child: FilledButton.icon(
-              onPressed: () {
-                navegacao.repetirOrientacao();
-              },
-              icon: const Icon(Icons.volume_up_rounded),
-              label: const Text(
-                'REPETIR ORIENTAÇÃO',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              style: FilledButton.styleFrom(
-                backgroundColor: _azul,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                navegacao.cancelarRota();
-              },
-              icon: const Icon(Icons.close_rounded),
-              label: const Text('CANCELAR NAVEGAÇÃO'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red.shade700,
-                side: BorderSide(color: Colors.red.shade200),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _abrirDestinos() async {
-    final destino = await showModalBottomSheet<Local>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Escolha um destino',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: _azul,
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 430),
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: widget.navegacao.locais.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final local = widget.navegacao.locais[index];
-
-                      return ListTile(
-                        leading: const Icon(Icons.place_outlined, color: _azul),
-                        title: Text(local.nome),
-                        trailing: const Icon(Icons.chevron_right_rounded),
-                        onTap: () {
-                          Navigator.pop(context, local);
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-
-    if (destino == null) {
-      return;
-    }
-
-    widget.navegacao.selecionarDestino(destino);
-
-    widget.navegacao.iniciarRota();
-  }
-
-  Widget _destinoManual() {
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: OutlinedButton.icon(
-        onPressed: _abrirDestinos,
-        icon: const Icon(Icons.touch_app_rounded),
-        label: const Text(
-          'ESCOLHER DESTINO MANUALMENTE',
-          style: TextStyle(fontWeight: FontWeight.w600),
         ),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: _azul,
-          backgroundColor: Colors.white,
-          side: BorderSide(color: _azul.withValues(alpha: 0.18)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(
+              12,
+            ),
+            border: Border.all(
+              color: const Color(0xFFE3E9EC),
+            ),
+          ),
+          child: const Icon(
+            Icons.accessibility_new_rounded,
+            color: _azul,
+            size: 21,
           ),
         ),
-      ),
+      ],
     );
   }
 
@@ -362,51 +153,105 @@ class _TelaNavegacaoState extends State<TelaNavegacao> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _fundo,
-
-      appBar: AppBar(
-        backgroundColor: _fundo,
-        surfaceTintColor: _fundo,
-        elevation: 0,
-        centerTitle: false,
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'NAVESCENCE',
-              style: TextStyle(
-                color: _azul,
-                fontSize: 21,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-              ),
-            ),
-            Text(
-              'Navegação assistiva',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-          ],
-        ),
-      ),
-
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+          physics:
+              const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(
+            18,
+            18,
+            18,
+            32,
+          ),
           children: [
-            _localizacao(),
+            _cabecalho(),
+
+            const SizedBox(height: 24),
+
+            CardLocalizacao(
+              pontoAtual:
+                  widget.localizacao.noAtual,
+              locais:
+                  widget.navegacao.locais,
+            ),
 
             const SizedBox(height: 16),
 
-            PainelVoz(controle: widget.controleVoz),
+            if (!_navegando)
+              PainelVoz(
+                controle:
+                    widget.controleVoz,
+              ),
 
-            if (widget.navegacao.destino != null) ...[
-              const SizedBox(height: 16),
+            if (_navegando)
+              CardNavegacao(
+                navegacao:
+                    widget.navegacao,
+              ),
 
-              _navegacaoAtual(),
+            const SizedBox(height: 16),
+
+            if (!_navegando)
+              BotaoDestino(
+                locais:
+                    widget.navegacao.locais,
+                onDestinoSelecionado:
+                    _selecionarDestino,
+              ),
+
+            if (!_navegando) ...[
+              const SizedBox(height: 24),
+
+              const Row(
+                children: [
+                  Expanded(
+                    child: Divider(
+                      color: Color(
+                        0xFFDDE4E8,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding:
+                        EdgeInsets.symmetric(
+                      horizontal: 12,
+                    ),
+                    child: Text(
+                      'DICA',
+                      style: TextStyle(
+                        color: Color(
+                          0xFF87949B,
+                        ),
+                        fontSize: 10,
+                        fontWeight:
+                            FontWeight.w800,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Divider(
+                      color: Color(
+                        0xFFDDE4E8,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 13),
+
+              const Text(
+                'Você pode navegar usando apenas a voz. '
+                'Diga “Nave” e informe o local para onde deseja ir.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFF74838B),
+                  fontSize: 13,
+                  height: 1.45,
+                ),
+              ),
             ],
-
-            const SizedBox(height: 16),
-
-            _destinoManual(),
           ],
         ),
       ),
