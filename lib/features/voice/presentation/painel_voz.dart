@@ -5,63 +5,42 @@ import 'package:flutter/material.dart';
 import 'controle_voz.dart';
 
 class PainelVoz extends StatefulWidget {
-  const PainelVoz({
-    super.key,
-    required this.controle,
-  });
+  const PainelVoz({super.key, required this.controle});
 
   final ControleVoz controle;
 
   @override
-  State<PainelVoz> createState() =>
-      _PainelVozState();
+  State<PainelVoz> createState() => _PainelVozState();
 }
 
-class _PainelVozState
-    extends State<PainelVoz>
-    with WidgetsBindingObserver {
+class _PainelVozState extends State<PainelVoz> with WidgetsBindingObserver {
   static const _azul = Color(0xFF102F46);
   static const _azulClaro = Color(0xFF1D5478);
   static const _verde = Color(0xFF16876D);
 
-  ControleVoz get controle =>
-      widget.controle;
+  ControleVoz get controle => widget.controle;
 
   @override
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance.addObserver(
-      this,
-    );
+    WidgetsBinding.instance.addObserver(this);
 
-    controle.addListener(
-      _atualizar,
-    );
+    controle.addListener(_atualizar);
 
-    unawaited(
-      controle.inicializar(),
-    );
+    unawaited(controle.inicializar());
   }
 
   @override
-  void didChangeAppLifecycleState(
-    AppLifecycleState state,
-  ) {
-    controle.definirAppEmPrimeiroPlano(
-      state == AppLifecycleState.resumed,
-    );
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    controle.definirAppEmPrimeiroPlano(state == AppLifecycleState.resumed);
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(
-      this,
-    );
+    WidgetsBinding.instance.removeObserver(this);
 
-    controle.removeListener(
-      _atualizar,
-    );
+    controle.removeListener(_atualizar);
 
     super.dispose();
   }
@@ -149,12 +128,9 @@ class _PainelVozState
   }
 
   bool get _podeTocar =>
-      controle.estado ==
-          EstadoVoz.pronto ||
-      controle.estado ==
-          EstadoVoz.ouvindo ||
-      controle.estado ==
-          EstadoVoz.erro;
+      controle.estado == EstadoVoz.pronto ||
+      controle.estado == EstadoVoz.ouvindo ||
+      controle.estado == EstadoVoz.erro;
 
   @override
   Widget build(BuildContext context) {
@@ -162,28 +138,19 @@ class _PainelVozState
 
     return Semantics(
       container: true,
-      label: 'Controle por voz. $_titulo. '
+      label:
+          'Controle por voz. $_titulo. '
           '${controle.mensagem}',
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(
-          22,
-          28,
-          22,
-          24,
-        ),
+        padding: const EdgeInsets.fromLTRB(22, 28, 22, 24),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              _azul,
-              _azulClaro,
-            ],
+            colors: [_azul, _azulClaro],
           ),
-          borderRadius: BorderRadius.circular(
-            28,
-          ),
+          borderRadius: BorderRadius.circular(28),
           boxShadow: const [
             BoxShadow(
               color: Color(0x24102F46),
@@ -209,9 +176,7 @@ class _PainelVozState
               controle.mensagem,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white.withValues(
-                  alpha: 0.76,
-                ),
+                color: Colors.white.withValues(alpha: 0.76),
                 fontSize: 14,
                 height: 1.4,
               ),
@@ -220,59 +185,36 @@ class _PainelVozState
             Semantics(
               button: true,
               label: 'Falar com o NAVESCENCE',
-              hint:
-                  'Toque duas vezes para iniciar um comando de voz',
+              hint: 'Toque duas vezes para iniciar um comando de voz',
               child: GestureDetector(
-                onTap: _podeTocar
-                    ? controle.alternarEscuta
-                    : null,
+                onTap: _podeTocar ? controle.alternarEscuta : null,
                 child: AnimatedContainer(
-                  duration: const Duration(
-                    milliseconds: 220,
-                  ),
-                  width: controle.ouvindo
-                      ? 132
-                      : 116,
-                  height: controle.ouvindo
-                      ? 132
-                      : 116,
+                  duration: const Duration(milliseconds: 220),
+                  width: controle.ouvindo ? 132 : 116,
+                  height: controle.ouvindo ? 132 : 116,
                   decoration: BoxDecoration(
-                    color: controle.estado ==
-                            EstadoVoz.pronto
+                    color: controle.estado == EstadoVoz.pronto
                         ? Colors.white
                         : cor,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: Colors.white.withValues(
-                        alpha: 0.20,
-                      ),
+                      color: Colors.white.withValues(alpha: 0.20),
                       width: 5,
                     ),
                     boxShadow: [
                       BoxShadow(
                         color: controle.ouvindo
-                            ? cor.withValues(
-                                alpha: 0.50,
-                              )
-                            : Colors.black.withValues(
-                                alpha: 0.15,
-                              ),
-                        blurRadius:
-                            controle.ouvindo
-                                ? 30
-                                : 18,
-                        spreadRadius:
-                            controle.ouvindo
-                                ? 7
-                                : 1,
+                            ? cor.withValues(alpha: 0.50)
+                            : Colors.black.withValues(alpha: 0.15),
+                        blurRadius: controle.ouvindo ? 30 : 18,
+                        spreadRadius: controle.ouvindo ? 7 : 1,
                       ),
                     ],
                   ),
                   child: Icon(
                     _icone,
                     size: 54,
-                    color: controle.estado ==
-                            EstadoVoz.pronto
+                    color: controle.estado == EstadoVoz.pronto
                         ? _azul
                         : Colors.white,
                   ),
@@ -290,16 +232,13 @@ class _PainelVozState
                 letterSpacing: 1.1,
               ),
             ),
-            if (controle.estado ==
-                EstadoVoz.pronto) ...[
+            if (controle.estado == EstadoVoz.pronto) ...[
               const SizedBox(height: 9),
               Text(
                 'Ou simplesmente diga “Nave”',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white.withValues(
-                    alpha: 0.60,
-                  ),
+                  color: Colors.white.withValues(alpha: 0.60),
                   fontSize: 12,
                 ),
               ),

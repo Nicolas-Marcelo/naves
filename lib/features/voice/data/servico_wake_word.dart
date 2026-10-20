@@ -5,84 +5,57 @@ import 'package:flutter/services.dart';
 
 class ServicoWakeWord {
   ServicoWakeWord() {
-    _channel.setMethodCallHandler(
-      _receberEventoAndroid,
-    );
+    _channel.setMethodCallHandler(_receberEventoAndroid);
   }
 
-  static const MethodChannel _channel =
-      MethodChannel(
-    'navescence/wake_word',
-  );
+  static const MethodChannel _channel = MethodChannel('navescence/wake_word');
 
-  final StreamController<String>
-      _comandosController =
+  final StreamController<String> _comandosController =
       StreamController<String>.broadcast();
 
-  final StreamController<void>
-      _timeoutsController =
+  final StreamController<void> _timeoutsController =
       StreamController<void>.broadcast();
 
-  final StreamController<void>
-      _wakeWordsController =
+  final StreamController<void> _wakeWordsController =
       StreamController<void>.broadcast();
 
-  Stream<String> get comandos =>
-      _comandosController.stream;
+  Stream<String> get comandos => _comandosController.stream;
 
-  Stream<void> get timeouts =>
-      _timeoutsController.stream;
+  Stream<void> get timeouts => _timeoutsController.stream;
 
-  Stream<void> get wakeWords =>
-      _wakeWordsController.stream;
+  Stream<void> get wakeWords => _wakeWordsController.stream;
 
-  Future<dynamic> _receberEventoAndroid(
-    MethodCall call,
-  ) async {
+  Future<dynamic> _receberEventoAndroid(MethodCall call) async {
     switch (call.method) {
       case 'wakeWord':
-        debugPrint(
-          '[WAKE → FLUTTER] NAVE',
-        );
+        debugPrint('[WAKE → FLUTTER] NAVE');
 
         if (!_wakeWordsController.isClosed) {
-          _wakeWordsController.add(
-            null,
-          );
+          _wakeWordsController.add(null);
         }
 
         break;
 
       case 'comando':
-        final comando =
-            '${call.arguments ?? ''}'
-                .trim();
+        final comando = '${call.arguments ?? ''}'.trim();
 
         if (comando.isEmpty) {
           return;
         }
 
-        debugPrint(
-          '[COMANDO → FLUTTER] $comando',
-        );
+        debugPrint('[COMANDO → FLUTTER] $comando');
 
         if (!_comandosController.isClosed) {
-          _comandosController.add(
-            comando,
-          );
+          _comandosController.add(comando);
         }
 
         break;
 
       case 'timeout':
-        debugPrint(
-          '[COMANDO → FLUTTER] Timeout',
-        );
+        debugPrint('[COMANDO → FLUTTER] Timeout');
 
         if (!_timeoutsController.isClosed) {
-          _timeoutsController.add(
-            null,
-          );
+          _timeoutsController.add(null);
         }
 
         break;
@@ -93,13 +66,9 @@ class ServicoWakeWord {
     if (kIsWeb) return;
 
     try {
-      await _channel.invokeMethod(
-        'iniciar',
-      );
+      await _channel.invokeMethod('iniciar');
     } on PlatformException catch (erro) {
-      debugPrint(
-        '[WAKE] Erro ao iniciar serviço: ${erro.message}',
-      );
+      debugPrint('[WAKE] Erro ao iniciar serviço: ${erro.message}');
     }
   }
 
@@ -107,13 +76,9 @@ class ServicoWakeWord {
     if (kIsWeb) return;
 
     try {
-      await _channel.invokeMethod(
-        'ouvir',
-      );
+      await _channel.invokeMethod('ouvir');
     } on PlatformException catch (erro) {
-      debugPrint(
-        '[WAKE] Erro ao iniciar modo Nave: ${erro.message}',
-      );
+      debugPrint('[WAKE] Erro ao iniciar modo Nave: ${erro.message}');
     }
   }
 
@@ -121,13 +86,9 @@ class ServicoWakeWord {
     if (kIsWeb) return;
 
     try {
-      await _channel.invokeMethod(
-        'ouvirComando',
-      );
+      await _channel.invokeMethod('ouvirComando');
     } on PlatformException catch (erro) {
-      debugPrint(
-        '[WAKE] Erro ao iniciar comando: ${erro.message}',
-      );
+      debugPrint('[WAKE] Erro ao iniciar comando: ${erro.message}');
     }
   }
 
@@ -135,13 +96,9 @@ class ServicoWakeWord {
     if (kIsWeb) return;
 
     try {
-      await _channel.invokeMethod(
-        'desligar',
-      );
+      await _channel.invokeMethod('desligar');
     } on PlatformException catch (erro) {
-      debugPrint(
-        '[WAKE] Erro ao desligar reconhecimento: ${erro.message}',
-      );
+      debugPrint('[WAKE] Erro ao desligar reconhecimento: ${erro.message}');
     }
   }
 
@@ -153,13 +110,9 @@ class ServicoWakeWord {
     if (kIsWeb) return;
 
     try {
-      await _channel.invokeMethod(
-        'parar',
-      );
+      await _channel.invokeMethod('parar');
     } on PlatformException catch (erro) {
-      debugPrint(
-        '[WAKE] Erro ao parar serviço: ${erro.message}',
-      );
+      debugPrint('[WAKE] Erro ao parar serviço: ${erro.message}');
     }
   }
 

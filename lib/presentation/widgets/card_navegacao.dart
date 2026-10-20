@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 import '../../features/navigation/presentation/controle_navegacao.dart';
 
 class CardNavegacao extends StatelessWidget {
-  const CardNavegacao({
-    super.key,
-    required this.navegacao,
-  });
+  const CardNavegacao({super.key, required this.navegacao});
 
   static const _azul = Color(0xFF102F46);
   static const _azulClaro = Color(0xFF1D5478);
@@ -15,8 +12,7 @@ class CardNavegacao extends StatelessWidget {
 
   final ControleNavegacao navegacao;
 
-  bool get chegou =>
-      navegacao.estado == 'DESTINO_ALCANCADO';
+  bool get chegou => navegacao.estado == 'DESTINO_ALCANCADO';
 
   IconData _iconeOrientacao() {
     final texto = navegacao.orientacaoAtual.toLowerCase();
@@ -42,23 +38,20 @@ class CardNavegacao extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final corPrincipal =
-        chegou ? _verde : _azul;
+    final corPrincipal = chegou ? _verde : _azul;
 
     return Semantics(
       container: true,
       label: chegou
           ? 'Destino alcançado. ${navegacao.destino!.nome}.'
           : 'Navegando para ${navegacao.destino!.nome}. '
-              '${navegacao.orientacaoAtual}',
+                '${navegacao.orientacaoAtual}',
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-            color: const Color(0xFFE3E9EC),
-          ),
+          border: Border.all(color: const Color(0xFFE3E9EC)),
           boxShadow: const [
             BoxShadow(
               color: Color(0x0D000000),
@@ -71,12 +64,7 @@ class CardNavegacao extends StatelessWidget {
           children: [
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(
-                22,
-                20,
-                22,
-                18,
-              ),
+              padding: const EdgeInsets.fromLTRB(22, 20, 22, 18),
               decoration: BoxDecoration(
                 color: corPrincipal,
                 borderRadius: const BorderRadius.vertical(
@@ -87,9 +75,7 @@ class CardNavegacao extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    chegou
-                        ? 'VOCÊ CHEGOU'
-                        : 'NAVEGANDO PARA',
+                    chegou ? 'VOCÊ CHEGOU' : 'NAVEGANDO PARA',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.78),
                       fontSize: 11,
@@ -131,9 +117,7 @@ class CardNavegacao extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    chegou
-                        ? 'Destino alcançado'
-                        : navegacao.orientacaoAtual,
+                    chegou ? 'Destino alcançado' : navegacao.orientacaoAtual,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: _azul,
@@ -142,8 +126,7 @@ class CardNavegacao extends StatelessWidget {
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  if (!chegou &&
-                      navegacao.proximoPonto != null) ...[
+                  if (!chegou && navegacao.proximoPonto != null) ...[
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -169,12 +152,8 @@ class CardNavegacao extends StatelessWidget {
                     width: double.infinity,
                     height: 58,
                     child: FilledButton.icon(
-                      onPressed:
-                          navegacao.repetirOrientacao,
-                      icon: const Icon(
-                        Icons.volume_up_rounded,
-                        size: 24,
-                      ),
+                      onPressed: navegacao.repetirOrientacao,
+                      icon: const Icon(Icons.volume_up_rounded, size: 24),
                       label: const Text(
                         'Repetir orientação',
                         style: TextStyle(
@@ -186,8 +165,7 @@ class CardNavegacao extends StatelessWidget {
                         backgroundColor: _azul,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(17),
+                          borderRadius: BorderRadius.circular(17),
                         ),
                       ),
                     ),
@@ -197,23 +175,16 @@ class CardNavegacao extends StatelessWidget {
                     width: double.infinity,
                     height: 52,
                     child: TextButton.icon(
-                      onPressed:
-                          navegacao.cancelarRota,
-                      icon: const Icon(
-                        Icons.close_rounded,
-                      ),
+                      onPressed: navegacao.cancelarRota,
+                      icon: const Icon(Icons.close_rounded),
                       label: const Text(
                         'Cancelar navegação',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       style: TextButton.styleFrom(
-                        foregroundColor:
-                            Colors.red.shade700,
+                        foregroundColor: Colors.red.shade700,
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(15),
+                          borderRadius: BorderRadius.circular(15),
                         ),
                       ),
                     ),

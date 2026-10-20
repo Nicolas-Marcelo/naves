@@ -8,13 +8,7 @@ import '../../navigation/domain/entities/local.dart';
 import '../../navigation/presentation/controle_navegacao.dart';
 import '../data/servico_wake_word.dart';
 
-enum EstadoVoz {
-  pronto,
-  ouvindo,
-  processando,
-  respondendo,
-  erro,
-}
+enum EstadoVoz { pronto, ouvindo, processando, respondendo, erro }
 
 class ControleVoz extends ChangeNotifier {
   ControleVoz({
@@ -68,8 +62,7 @@ class ControleVoz extends ChangeNotifier {
    */
   static const double _margemEntreCandidatos = 0.12;
 
-  bool get ouvindo =>
-      estado == EstadoVoz.ouvindo;
+  bool get ouvindo => estado == EstadoVoz.ouvindo;
 
   bool get _rotaAtiva {
     return navegacao.estado == 'ROTA_ATIVA' ||
@@ -80,9 +73,7 @@ class ControleVoz extends ChangeNotifier {
     if (!_inicializado) {
       _inicializado = true;
 
-      navegacao.addListener(
-        _navegacaoMudou,
-      );
+      navegacao.addListener(_navegacaoMudou);
     }
 
     estado = EstadoVoz.pronto;
@@ -93,30 +84,22 @@ class ControleVoz extends ChangeNotifier {
     await retomarModoAutomatico();
   }
 
-  void definirAppEmPrimeiroPlano(
-    bool ativo,
-  ) {
+  void definirAppEmPrimeiroPlano(bool ativo) {
     if (_appEmPrimeiroPlano == ativo) {
       return;
     }
 
     _appEmPrimeiroPlano = ativo;
 
-    debugPrint(
-      '[VOZ] App em primeiro plano: $ativo',
-    );
+    debugPrint('[VOZ] App em primeiro plano: $ativo');
 
-    unawaited(
-      retomarModoAutomatico(),
-    );
+    unawaited(retomarModoAutomatico());
   }
 
   void _navegacaoMudou() {
     if (_interacaoAtiva) return;
 
-    unawaited(
-      retomarModoAutomatico(),
-    );
+    unawaited(retomarModoAutomatico());
   }
 
   Future<void> retomarModoAutomatico() async {
@@ -128,19 +111,14 @@ class ControleVoz extends ChangeNotifier {
       return;
     }
 
-    if (_appEmPrimeiroPlano ||
-        _rotaAtiva) {
+    if (_appEmPrimeiroPlano || _rotaAtiva) {
       await wakeWord.ouvir();
 
-      debugPrint(
-        '[VOZ] Espera: WAKE RESTRITO',
-      );
+      debugPrint('[VOZ] Espera: WAKE RESTRITO');
     } else {
       await wakeWord.desligar();
 
-      debugPrint(
-        '[VOZ] Espera: DESLIGADO',
-      );
+      debugPrint('[VOZ] Espera: DESLIGADO');
     }
   }
 
@@ -148,17 +126,12 @@ class ControleVoz extends ChangeNotifier {
     final agora = DateTime.now();
 
     if (_ultimoWakeRecebido != null &&
-        agora.difference(
-              _ultimoWakeRecebido!,
-            ) <
-            const Duration(
-              milliseconds: 1200,
-            )) {
+        agora.difference(_ultimoWakeRecebido!) <
+            const Duration(milliseconds: 1200)) {
       return;
     }
 
-    if (_interacaoAtiva ||
-        _processando) {
+    if (_interacaoAtiva || _processando) {
       return;
     }
 
@@ -208,9 +181,7 @@ class ControleVoz extends ChangeNotifier {
 
     textoReconhecido = '';
 
-    await feedbackTatil.executar(
-      FeedbackTatil.ativacao,
-    );
+    await feedbackTatil.executar(FeedbackTatil.ativacao);
 
     estado = EstadoVoz.ouvindo;
     mensagem = 'Estou ouvindo...';
@@ -220,9 +191,7 @@ class ControleVoz extends ChangeNotifier {
     await wakeWord.ouvirComando();
   }
 
-  Future<void> processarComandoExterno(
-    String texto,
-  ) async {
+  Future<void> processarComandoExterno(String texto) async {
     if (_processando) return;
 
     _interacaoAtiva = true;
@@ -237,15 +206,11 @@ class ControleVoz extends ChangeNotifier {
     textoReconhecido = bruto;
     mensagem = bruto;
 
-    _logInicioTeste(
-      bruto,
-    );
+    _logInicioTeste(bruto);
 
     notifyListeners();
 
-    await _processarComando(
-      bruto,
-    );
+    await _processarComando(bruto);
   }
 
   Future<void> processarTimeoutExterno() async {
@@ -266,44 +231,30 @@ class ControleVoz extends ChangeNotifier {
 
     notifyListeners();
 
-    await _tratarFalha(
-      semAudio: true,
-    );
+    await _tratarFalha(semAudio: true);
   }
 
-  void _logInicioTeste(
-    String bruto,
-  ) {
+  void _logInicioTeste(String bruto) {
     debugPrint('');
     debugPrint('========== TESTE DE VOZ ==========');
 
-    debugPrint(
-      '[VOZ][BRUTO] $bruto',
-    );
+    debugPrint('[VOZ][BRUTO] $bruto');
 
-    debugPrint(
-      '[VOZ][NORMALIZADO] ${_normalizar(bruto)}',
-    );
+    debugPrint('[VOZ][NORMALIZADO] ${_normalizar(bruto)}');
   }
 
   void _logFimTeste() {
-    debugPrint(
-      '===================================',
-    );
+    debugPrint('===================================');
 
     debugPrint('');
   }
 
-  Future<void> _processarComando(
-    String texto,
-  ) async {
+  Future<void> _processarComando(String texto) async {
     if (_processando) return;
 
     _processando = true;
 
-    final comando = _normalizar(
-      texto,
-    );
+    final comando = _normalizar(texto);
 
     estado = EstadoVoz.processando;
     mensagem = 'Entendendo...';
@@ -311,25 +262,17 @@ class ControleVoz extends ChangeNotifier {
     notifyListeners();
 
     if (_destinoPendente != null) {
-      debugPrint(
-        '[VOZ][CONTEXTO] confirmação de destino',
-      );
+      debugPrint('[VOZ][CONTEXTO] confirmação de destino');
 
-      await _processarConfirmacao(
-        comando,
-      );
+      await _processarConfirmacao(comando);
 
       return;
     }
 
     if (_comandoAjuda(comando)) {
-      debugPrint(
-        '[VOZ][INTENCAO] AJUDA',
-      );
+      debugPrint('[VOZ][INTENCAO] AJUDA');
 
-      debugPrint(
-        '[VOZ][DECISAO] COMANDO GERAL',
-      );
+      debugPrint('[VOZ][DECISAO] COMANDO GERAL');
 
       _logFimTeste();
 
@@ -343,31 +286,21 @@ class ControleVoz extends ChangeNotifier {
     }
 
     if (_comandoEstouPerdido(comando)) {
-      debugPrint(
-        '[VOZ][INTENCAO] ESTOU_PERDIDO',
-      );
+      debugPrint('[VOZ][INTENCAO] ESTOU_PERDIDO');
 
-      debugPrint(
-        '[VOZ][DECISAO] COMANDO GERAL',
-      );
+      debugPrint('[VOZ][DECISAO] COMANDO GERAL');
 
       _logFimTeste();
 
-      await _responder(
-        navegacao.descricaoSituacaoAtual(),
-      );
+      await _responder(navegacao.descricaoSituacaoAtual());
 
       return;
     }
 
     if (_comandoRepetir(comando)) {
-      debugPrint(
-        '[VOZ][INTENCAO] REPETIR',
-      );
+      debugPrint('[VOZ][INTENCAO] REPETIR');
 
-      debugPrint(
-        '[VOZ][DECISAO] COMANDO GERAL',
-      );
+      debugPrint('[VOZ][DECISAO] COMANDO GERAL');
 
       _logFimTeste();
 
@@ -384,13 +317,9 @@ class ControleVoz extends ChangeNotifier {
     }
 
     if (_comandoCancelar(comando)) {
-      debugPrint(
-        '[VOZ][INTENCAO] CANCELAR',
-      );
+      debugPrint('[VOZ][INTENCAO] CANCELAR');
 
-      debugPrint(
-        '[VOZ][DECISAO] COMANDO GERAL',
-      );
+      debugPrint('[VOZ][DECISAO] COMANDO GERAL');
 
       _logFimTeste();
 
@@ -407,105 +336,72 @@ class ControleVoz extends ChangeNotifier {
     }
 
     if (_perguntaLocalizacao(comando)) {
-      debugPrint(
-        '[VOZ][INTENCAO] LOCALIZACAO_ATUAL',
-      );
+      debugPrint('[VOZ][INTENCAO] LOCALIZACAO_ATUAL');
 
-      debugPrint(
-        '[VOZ][DECISAO] COMANDO GERAL',
-      );
+      debugPrint('[VOZ][DECISAO] COMANDO GERAL');
 
       _logFimTeste();
 
-      await _responder(
-        navegacao.descricaoLocalizacaoAtual(),
-      );
+      await _responder(navegacao.descricaoLocalizacaoAtual());
 
       return;
     }
 
     if (_perguntaDestinoAtual(comando)) {
-      debugPrint(
-        '[VOZ][INTENCAO] DESTINO_ATUAL',
-      );
+      debugPrint('[VOZ][INTENCAO] DESTINO_ATUAL');
 
-      debugPrint(
-        '[VOZ][DECISAO] COMANDO GERAL',
-      );
+      debugPrint('[VOZ][DECISAO] COMANDO GERAL');
 
       _logFimTeste();
 
-      await _responder(
-        navegacao.descricaoDestinoAtual(),
-      );
+      await _responder(navegacao.descricaoDestinoAtual());
 
       return;
     }
 
     if (_perguntaLocaisProximos(comando)) {
-      debugPrint(
-        '[VOZ][INTENCAO] LOCAIS_PROXIMOS',
-      );
+      debugPrint('[VOZ][INTENCAO] LOCAIS_PROXIMOS');
 
-      debugPrint(
-        '[VOZ][DECISAO] COMANDO GERAL',
-      );
+      debugPrint('[VOZ][DECISAO] COMANDO GERAL');
 
       _logFimTeste();
 
-      await _responder(
-        navegacao.descricaoLocaisProximos(),
-      );
+      await _responder(navegacao.descricaoLocaisProximos());
 
       return;
     }
 
     if (_comandoVoltarEntrada(comando)) {
-      debugPrint(
-        '[VOZ][INTENCAO] VOLTAR_ENTRADA',
-      );
+      debugPrint('[VOZ][INTENCAO] VOLTAR_ENTRADA');
 
-      final entrada = _buscarLocalPorNome(
-        'entrada',
-      );
+      final entrada = _buscarLocalPorNome('entrada');
 
       if (entrada != null) {
-        debugPrint(
-          '[VOZ][DECISAO] DIRETO -> ${entrada.nome}',
-        );
+        debugPrint('[VOZ][DECISAO] DIRETO -> ${entrada.nome}');
 
         _logFimTeste();
 
-        await _iniciarDestino(
-          entrada,
-        );
+        await _iniciarDestino(entrada);
 
         return;
       }
     }
 
     if (_comandoIniciar(comando)) {
-      debugPrint(
-        '[VOZ][INTENCAO] INICIAR',
-      );
+      debugPrint('[VOZ][INTENCAO] INICIAR');
 
-      debugPrint(
-        '[VOZ][DECISAO] COMANDO GERAL',
-      );
+      debugPrint('[VOZ][DECISAO] COMANDO GERAL');
 
       _logFimTeste();
 
-      final iniciou =
-          await navegacao.iniciarRota();
+      final iniciou = await navegacao.iniciarRota();
 
       mensagem = navegacao.mensagem;
 
       notifyListeners();
 
       if (!iniciou) {
-        await feedbackTatil.executar(
-          FeedbackTatil.erro,
-        );
+        await feedbackTatil.executar(FeedbackTatil.erro);
       }
 
       await _voltarAoPronto();
@@ -513,24 +409,16 @@ class ControleVoz extends ChangeNotifier {
       return;
     }
 
-    final analise = _analisarDestino(
-      comando,
-    );
+    final analise = _analisarDestino(comando);
 
-    _logAnaliseDestino(
-      analise,
-    );
+    _logAnaliseDestino(analise);
 
     if (analise == null) {
-      debugPrint(
-        '[VOZ][DECISAO] REPETIR -> nenhum candidato',
-      );
+      debugPrint('[VOZ][DECISAO] REPETIR -> nenhum candidato');
 
       _logFimTeste();
 
-      await _tratarFalha(
-        semAudio: false,
-      );
+      await _tratarFalha(semAudio: false);
 
       return;
     }
@@ -540,17 +428,12 @@ class ControleVoz extends ChangeNotifier {
     /*
      * Correspondência praticamente exata.
      */
-    if (melhor.confianca >=
-        _confiancaDireta) {
-      debugPrint(
-        '[VOZ][DECISAO] DIRETO -> ${melhor.local.nome}',
-      );
+    if (melhor.confianca >= _confiancaDireta) {
+      debugPrint('[VOZ][DECISAO] DIRETO -> ${melhor.local.nome}');
 
       _logFimTeste();
 
-      await _iniciarDestino(
-        melhor.local,
-      );
+      await _iniciarDestino(melhor.local);
 
       return;
     }
@@ -559,19 +442,13 @@ class ControleVoz extends ChangeNotifier {
      * Boa confiança, mas também verificamos
      * se o segundo colocado não está muito perto.
      */
-    if (melhor.confianca >=
-            _confiancaAlta &&
-        analise.diferencaParaSegundo >=
-            _margemEntreCandidatos) {
-      debugPrint(
-        '[VOZ][DECISAO] DIRETO -> ${melhor.local.nome}',
-      );
+    if (melhor.confianca >= _confiancaAlta &&
+        analise.diferencaParaSegundo >= _margemEntreCandidatos) {
+      debugPrint('[VOZ][DECISAO] DIRETO -> ${melhor.local.nome}');
 
       _logFimTeste();
 
-      await _iniciarDestino(
-        melhor.local,
-      );
+      await _iniciarDestino(melhor.local);
 
       return;
     }
@@ -579,17 +456,12 @@ class ControleVoz extends ChangeNotifier {
     /*
      * Resultado plausível, mas não seguro.
      */
-    if (melhor.confianca >=
-        _confiancaConfirmacao) {
-      debugPrint(
-        '[VOZ][DECISAO] CONFIRMAR -> ${melhor.local.nome}',
-      );
+    if (melhor.confianca >= _confiancaConfirmacao) {
+      debugPrint('[VOZ][DECISAO] CONFIRMAR -> ${melhor.local.nome}');
 
       _logFimTeste();
 
-      await _pedirConfirmacao(
-        melhor.local,
-      );
+      await _pedirConfirmacao(melhor.local);
 
       return;
     }
@@ -600,30 +472,20 @@ class ControleVoz extends ChangeNotifier {
 
     _logFimTeste();
 
-    await _tratarFalha(
-      semAudio: false,
-    );
+    await _tratarFalha(semAudio: false);
   }
 
-  void _logAnaliseDestino(
-    _AnaliseDestino? analise,
-  ) {
+  void _logAnaliseDestino(_AnaliseDestino? analise) {
     if (analise == null) {
-      debugPrint(
-        '[VOZ][CANDIDATOS] nenhum',
-      );
+      debugPrint('[VOZ][CANDIDATOS] nenhum');
 
       return;
     }
 
-    final limite = min(
-      3,
-      analise.candidatos.length,
-    );
+    final limite = min(3, analise.candidatos.length);
 
     for (var i = 0; i < limite; i++) {
-      final candidato =
-          analise.candidatos[i];
+      final candidato = analise.candidatos[i];
 
       debugPrint(
         '[VOZ][CANDIDATO ${i + 1}] '
@@ -638,42 +500,31 @@ class ControleVoz extends ChangeNotifier {
     );
   }
 
-  Future<void> _processarConfirmacao(
-    String comando,
-  ) async {
-    final destino =
-        _destinoPendente;
+  Future<void> _processarConfirmacao(String comando) async {
+    final destino = _destinoPendente;
 
     if (destino == null) {
       _processando = false;
 
-      await _processarComando(
-        comando,
-      );
+      await _processarComando(comando);
 
       return;
     }
 
     if (_respostaSim(comando)) {
-      debugPrint(
-        '[VOZ][CONFIRMACAO] SIM -> ${destino.nome}',
-      );
+      debugPrint('[VOZ][CONFIRMACAO] SIM -> ${destino.nome}');
 
       _logFimTeste();
 
       _destinoPendente = null;
 
-      await _iniciarDestino(
-        destino,
-      );
+      await _iniciarDestino(destino);
 
       return;
     }
 
     if (_respostaNao(comando)) {
-      debugPrint(
-        '[VOZ][CONFIRMACAO] NÃO',
-      );
+      debugPrint('[VOZ][CONFIRMACAO] NÃO');
 
       _logFimTeste();
 
@@ -681,8 +532,7 @@ class ControleVoz extends ChangeNotifier {
       _processando = false;
 
       estado = EstadoVoz.respondendo;
-      mensagem =
-          'Tudo bem. Diga o destino novamente.';
+      mensagem = 'Tudo bem. Diga o destino novamente.';
 
       notifyListeners();
 
@@ -705,41 +555,27 @@ class ControleVoz extends ChangeNotifier {
      * O usuário pode responder outro destino
      * em vez de "não".
      */
-    final analise =
-        _analisarDestino(
-      comando,
-    );
+    final analise = _analisarDestino(comando);
 
-    _logAnaliseDestino(
-      analise,
-    );
+    _logAnaliseDestino(analise);
 
     if (analise != null &&
-        analise.melhor.confianca >=
-            _confiancaAlta &&
-        analise.diferencaParaSegundo >=
-            _margemEntreCandidatos) {
-      final novoDestino =
-          analise.melhor.local;
+        analise.melhor.confianca >= _confiancaAlta &&
+        analise.diferencaParaSegundo >= _margemEntreCandidatos) {
+      final novoDestino = analise.melhor.local;
 
-      debugPrint(
-        '[VOZ][CONFIRMACAO] NOVO DESTINO -> ${novoDestino.nome}',
-      );
+      debugPrint('[VOZ][CONFIRMACAO] NOVO DESTINO -> ${novoDestino.nome}');
 
       _logFimTeste();
 
       _destinoPendente = null;
 
-      await _iniciarDestino(
-        novoDestino,
-      );
+      await _iniciarDestino(novoDestino);
 
       return;
     }
 
-    debugPrint(
-      '[VOZ][CONFIRMACAO] RESPOSTA NÃO IDENTIFICADA',
-    );
+    debugPrint('[VOZ][CONFIRMACAO] RESPOSTA NÃO IDENTIFICADA');
 
     _logFimTeste();
 
@@ -750,10 +586,7 @@ class ControleVoz extends ChangeNotifier {
 
     notifyListeners();
 
-    await navegacao.falarMensagem(
-      'Responda sim ou não.',
-      retomarEscuta: false,
-    );
+    await navegacao.falarMensagem('Responda sim ou não.', retomarEscuta: false);
 
     estado = EstadoVoz.ouvindo;
     mensagem = 'Aguardando confirmação...';
@@ -763,24 +596,18 @@ class ControleVoz extends ChangeNotifier {
     await wakeWord.ouvirComando();
   }
 
-  Future<void> _pedirConfirmacao(
-    Local destino,
-  ) async {
+  Future<void> _pedirConfirmacao(Local destino) async {
     _destinoPendente = destino;
     _processando = false;
 
-    final resposta =
-        'Você quis dizer ${destino.nome}?';
+    final resposta = 'Você quis dizer ${destino.nome}?';
 
     estado = EstadoVoz.respondendo;
     mensagem = resposta;
 
     notifyListeners();
 
-    await navegacao.falarMensagem(
-      resposta,
-      retomarEscuta: false,
-    );
+    await navegacao.falarMensagem(resposta, retomarEscuta: false);
 
     estado = EstadoVoz.ouvindo;
     mensagem = 'Diga sim ou não.';
@@ -790,63 +617,44 @@ class ControleVoz extends ChangeNotifier {
     await wakeWord.ouvirComando();
   }
 
-  Future<void> _iniciarDestino(
-    Local destino,
-  ) async {
+  Future<void> _iniciarDestino(Local destino) async {
     _destinoPendente = null;
 
-    navegacao.selecionarDestino(
-      destino,
-    );
+    navegacao.selecionarDestino(destino);
 
     estado = EstadoVoz.respondendo;
     mensagem = 'Destino: ${destino.nome}.';
 
     notifyListeners();
 
-    final iniciou =
-        await navegacao.iniciarRota();
+    final iniciou = await navegacao.iniciarRota();
 
     if (!iniciou) {
-      await feedbackTatil.executar(
-        FeedbackTatil.erro,
-      );
+      await feedbackTatil.executar(FeedbackTatil.erro);
     }
 
     await _voltarAoPronto();
   }
 
-  Future<void> _responder(
-    String resposta,
-  ) async {
+  Future<void> _responder(String resposta) async {
     estado = EstadoVoz.respondendo;
     mensagem = resposta;
 
     notifyListeners();
 
-    await feedbackTatil.executar(
-      FeedbackTatil.sucesso,
-    );
+    await feedbackTatil.executar(FeedbackTatil.sucesso);
 
-    await navegacao.falarMensagem(
-      resposta,
-      retomarEscuta: false,
-    );
+    await navegacao.falarMensagem(resposta, retomarEscuta: false);
 
     await _voltarAoPronto();
   }
 
-  Future<void> _tratarFalha({
-    required bool semAudio,
-  }) async {
+  Future<void> _tratarFalha({required bool semAudio}) async {
     _tentativas++;
 
-    await feedbackTatil.executar(
-      FeedbackTatil.erro,
-    );
+    await feedbackTatil.executar(FeedbackTatil.erro);
 
-    if (_tentativas <=
-        _maxTentativas) {
+    if (_tentativas <= _maxTentativas) {
       final String resposta;
 
       if (_tentativas == 1) {
@@ -854,8 +662,7 @@ class ControleVoz extends ChangeNotifier {
             ? 'Não ouvi nada. Pode repetir?'
             : 'Não consegui identificar o destino. Pode repetir?';
       } else {
-        resposta =
-            'Tente falar somente o nome do destino.';
+        resposta = 'Tente falar somente o nome do destino.';
       }
 
       estado = EstadoVoz.respondendo;
@@ -863,10 +670,7 @@ class ControleVoz extends ChangeNotifier {
 
       notifyListeners();
 
-      await navegacao.falarMensagem(
-        resposta,
-        retomarEscuta: false,
-      );
+      await navegacao.falarMensagem(resposta, retomarEscuta: false);
 
       _processando = false;
 
@@ -889,10 +693,7 @@ class ControleVoz extends ChangeNotifier {
 
     notifyListeners();
 
-    await navegacao.falarMensagem(
-      resposta,
-      retomarEscuta: false,
-    );
+    await navegacao.falarMensagem(resposta, retomarEscuta: false);
 
     await _voltarAoPronto();
   }
@@ -911,226 +712,160 @@ class ControleVoz extends ChangeNotifier {
     await retomarModoAutomatico();
   }
 
-  bool _comandoAjuda(
-    String comando,
-  ) {
-    return _contemAlguma(
-      comando,
-      [
-        'ajuda',
-        'me ajude',
-        'me ajuda',
-        'o que posso falar',
-        'o que eu posso falar',
-        'quais sao os comandos',
-        'quais comandos',
-        'como usar',
-      ],
-    );
+  bool _comandoAjuda(String comando) {
+    return _contemAlguma(comando, [
+      'ajuda',
+      'me ajude',
+      'me ajuda',
+      'o que posso falar',
+      'o que eu posso falar',
+      'quais sao os comandos',
+      'quais comandos',
+      'como usar',
+    ]);
   }
 
-  bool _comandoEstouPerdido(
-    String comando,
-  ) {
-    return _contemAlguma(
-      comando,
-      [
-        'estou perdido',
-        'eu estou perdido',
-        'to perdido',
-        'me perdi',
-        'acho que me perdi',
-        'nao sei onde estou',
-      ],
-    );
+  bool _comandoEstouPerdido(String comando) {
+    return _contemAlguma(comando, [
+      'estou perdido',
+      'eu estou perdido',
+      'to perdido',
+      'me perdi',
+      'acho que me perdi',
+      'nao sei onde estou',
+    ]);
   }
 
-  bool _comandoRepetir(
-    String comando,
-  ) {
-    return _contemAlguma(
-      comando,
-      [
-        'repete',
-        'repita',
-        'repetir',
-        'de novo',
-        'novamente',
-        'fala de novo',
-        'fale de novo',
-        'repete a orientacao',
-        'repita a orientacao',
-        'qual foi a orientacao',
-        'qual era a orientacao',
-      ],
-    );
+  bool _comandoRepetir(String comando) {
+    return _contemAlguma(comando, [
+      'repete',
+      'repita',
+      'repetir',
+      'de novo',
+      'novamente',
+      'fala de novo',
+      'fale de novo',
+      'repete a orientacao',
+      'repita a orientacao',
+      'qual foi a orientacao',
+      'qual era a orientacao',
+    ]);
   }
 
-  bool _comandoCancelar(
-    String comando,
-  ) {
+  bool _comandoCancelar(String comando) {
     return comando == 'cancelar' ||
         comando == 'cancela' ||
         comando == 'cancele' ||
         comando == 'parar' ||
         comando == 'pare' ||
-        _contemAlguma(
-          comando,
-          [
-            'cancelar navegacao',
-            'cancela navegacao',
-            'parar navegacao',
-            'pare a navegacao',
-            'cancelar rota',
-            'cancela a rota',
-            'parar a rota',
-            'encerrar navegacao',
-            'encerrar rota',
-          ],
-        );
+        _contemAlguma(comando, [
+          'cancelar navegacao',
+          'cancela navegacao',
+          'parar navegacao',
+          'pare a navegacao',
+          'cancelar rota',
+          'cancela a rota',
+          'parar a rota',
+          'encerrar navegacao',
+          'encerrar rota',
+        ]);
   }
 
-  bool _perguntaLocalizacao(
-    String comando,
-  ) {
-    return _contemAlguma(
-      comando,
-      [
-        'onde estou',
-        'onde eu estou',
-        'onde eu to',
-        'onde to',
-        'onde estou agora',
-        'onde eu estou agora',
-        'que lugar e esse',
-        'qual minha localizacao',
-        'qual e minha localizacao',
-        'minha localizacao',
-        'localizacao atual',
-        'qual minha posicao',
-        'minha posicao',
-      ],
-    );
+  bool _perguntaLocalizacao(String comando) {
+    return _contemAlguma(comando, [
+      'onde estou',
+      'onde eu estou',
+      'onde eu to',
+      'onde to',
+      'onde estou agora',
+      'onde eu estou agora',
+      'que lugar e esse',
+      'qual minha localizacao',
+      'qual e minha localizacao',
+      'minha localizacao',
+      'localizacao atual',
+      'qual minha posicao',
+      'minha posicao',
+    ]);
   }
 
-  bool _perguntaDestinoAtual(
-    String comando,
-  ) {
-    return _contemAlguma(
-      comando,
-      [
-        'para onde estou indo',
-        'pra onde estou indo',
-        'onde estou indo',
-        'qual meu destino',
-        'qual e meu destino',
-        'meu destino',
-        'para onde estamos indo',
-      ],
-    );
+  bool _perguntaDestinoAtual(String comando) {
+    return _contemAlguma(comando, [
+      'para onde estou indo',
+      'pra onde estou indo',
+      'onde estou indo',
+      'qual meu destino',
+      'qual e meu destino',
+      'meu destino',
+      'para onde estamos indo',
+    ]);
   }
 
-  bool _perguntaLocaisProximos(
-    String comando,
-  ) {
-    return _contemAlguma(
-      comando,
-      [
-        'o que tem perto',
-        'oque tem perto',
-        'o que tem aqui',
-        'oque tem aqui',
-        'o que tem ao meu redor',
-        'oque tem ao meu redor',
-        'o que esta perto de mim',
-        'lugares proximos',
-        'locais proximos',
-        'o que tem por perto',
-        'quais salas estao perto',
-        'o que existe perto de mim',
-      ],
-    );
+  bool _perguntaLocaisProximos(String comando) {
+    return _contemAlguma(comando, [
+      'o que tem perto',
+      'oque tem perto',
+      'o que tem aqui',
+      'oque tem aqui',
+      'o que tem ao meu redor',
+      'oque tem ao meu redor',
+      'o que esta perto de mim',
+      'lugares proximos',
+      'locais proximos',
+      'o que tem por perto',
+      'quais salas estao perto',
+      'o que existe perto de mim',
+    ]);
   }
 
-  bool _comandoVoltarEntrada(
-    String comando,
-  ) {
-    return _contemAlguma(
-      comando,
-      [
-        'quero voltar',
-        'voltar para entrada',
-        'voltar pra entrada',
-        'me leva para entrada',
-        'me leve para entrada',
-        'quero ir para entrada',
-        'ir para entrada',
-      ],
-    );
+  bool _comandoVoltarEntrada(String comando) {
+    return _contemAlguma(comando, [
+      'quero voltar',
+      'voltar para entrada',
+      'voltar pra entrada',
+      'me leva para entrada',
+      'me leve para entrada',
+      'quero ir para entrada',
+      'ir para entrada',
+    ]);
   }
 
-  bool _comandoIniciar(
-    String comando,
-  ) {
+  bool _comandoIniciar(String comando) {
     return comando == 'iniciar' ||
         comando == 'comecar' ||
         comando == 'vai' ||
-        _contemAlguma(
-          comando,
-          [
-            'iniciar navegacao',
-            'comecar navegacao',
-            'iniciar rota',
-            'comecar rota',
-          ],
-        );
+        _contemAlguma(comando, [
+          'iniciar navegacao',
+          'comecar navegacao',
+          'iniciar rota',
+          'comecar rota',
+        ]);
   }
 
-  bool _respostaSim(
-    String comando,
-  ) {
+  bool _respostaSim(String comando) {
     return comando == 'sim' ||
         comando == 'isso' ||
         comando == 'correto' ||
         comando == 'certo' ||
         comando == 'confirmo' ||
-        _contemAlguma(
-          comando,
-          [
-            'isso mesmo',
-            'pode ser',
-            'exatamente',
-          ],
-        );
+        _contemAlguma(comando, ['isso mesmo', 'pode ser', 'exatamente']);
   }
 
-  bool _respostaNao(
-    String comando,
-  ) {
+  bool _respostaNao(String comando) {
     return comando == 'nao' ||
         comando == 'negativo' ||
         comando == 'errado' ||
-        _contemAlguma(
-          comando,
-          [
-            'nao e',
-            'nao quero',
-            'outro destino',
-            'outra sala',
-          ],
-        );
+        _contemAlguma(comando, [
+          'nao e',
+          'nao quero',
+          'outro destino',
+          'outra sala',
+        ]);
   }
 
-  bool _contemAlguma(
-    String comando,
-    List<String> expressoes,
-  ) {
-    for (final expressao
-        in expressoes) {
-      if (comando == expressao ||
-          comando.contains(
-            expressao,
-          )) {
+  bool _contemAlguma(String comando, List<String> expressoes) {
+    for (final expressao in expressoes) {
+      if (comando == expressao || comando.contains(expressao)) {
         return true;
       }
     }
@@ -1138,40 +873,22 @@ class ControleVoz extends ChangeNotifier {
     return false;
   }
 
-  _AnaliseDestino? _analisarDestino(
-    String comando,
-  ) {
-    final candidatos =
-        <_CandidatoDestino>[];
+  _AnaliseDestino? _analisarDestino(String comando) {
+    final candidatos = <_CandidatoDestino>[];
 
-    for (final local
-        in navegacao.locais) {
-      var melhorPontuacao =
-          0.0;
+    for (final local in navegacao.locais) {
+      var melhorPontuacao = 0.0;
 
-      for (final alias
-          in _aliasesDoLocal(
-        local,
-      )) {
-        final pontuacao =
-            _pontuarAlias(
-          comando,
-          alias,
-        );
+      for (final alias in _aliasesDoLocal(local)) {
+        final pontuacao = _pontuarAlias(comando, alias);
 
-        if (pontuacao >
-            melhorPontuacao) {
-          melhorPontuacao =
-              pontuacao;
+        if (pontuacao > melhorPontuacao) {
+          melhorPontuacao = pontuacao;
         }
       }
 
       candidatos.add(
-        _CandidatoDestino(
-          local: local,
-          confianca:
-              melhorPontuacao,
-        ),
+        _CandidatoDestino(local: local, confianca: melhorPontuacao),
       );
     }
 
@@ -1179,48 +896,27 @@ class ControleVoz extends ChangeNotifier {
       return null;
     }
 
-    candidatos.sort(
-      (a, b) =>
-          b.confianca.compareTo(
-        a.confianca,
-      ),
-    );
+    candidatos.sort((a, b) => b.confianca.compareTo(a.confianca));
 
-    final melhor =
-        candidatos.first;
+    final melhor = candidatos.first;
 
-    final segunda =
-        candidatos.length > 1
-            ? candidatos[1]
-            : null;
+    final segunda = candidatos.length > 1 ? candidatos[1] : null;
 
-    final diferenca =
-        segunda == null
-            ? melhor.confianca
-            : melhor.confianca -
-                segunda.confianca;
+    final diferenca = segunda == null
+        ? melhor.confianca
+        : melhor.confianca - segunda.confianca;
 
     return _AnaliseDestino(
-      candidatos:
-          candidatos,
-      melhor:
-          melhor,
-      diferencaParaSegundo:
-          diferenca,
+      candidatos: candidatos,
+      melhor: melhor,
+      diferencaParaSegundo: diferenca,
     );
   }
 
-  double _pontuarAlias(
-    String comando,
-    String alias,
-  ) {
-    final aliasNormalizado =
-        _normalizar(
-      alias,
-    );
+  double _pontuarAlias(String comando, String alias) {
+    final aliasNormalizado = _normalizar(alias);
 
-    if (comando ==
-        aliasNormalizado) {
+    if (comando == aliasNormalizado) {
       return 1.0;
     }
 
@@ -1229,55 +925,33 @@ class ControleVoz extends ChangeNotifier {
      * "quero ir para informatica"
      * contém "informatica".
      */
-    if (aliasNormalizado.length >=
-            3 &&
-        _contemPalavraOuExpressao(
-          comando,
-          aliasNormalizado,
-        )) {
+    if (aliasNormalizado.length >= 3 &&
+        _contemPalavraOuExpressao(comando, aliasNormalizado)) {
       return 0.99;
     }
 
-    final comandoLimpo =
-        _limparComandoDestino(
-      comando,
-    );
+    final comandoLimpo = _limparComandoDestino(comando);
 
-    final aliasLimpo =
-        _limparComandoDestino(
-      aliasNormalizado,
-    );
+    final aliasLimpo = _limparComandoDestino(aliasNormalizado);
 
-    if (comandoLimpo.isEmpty ||
-        aliasLimpo.isEmpty) {
+    if (comandoLimpo.isEmpty || aliasLimpo.isEmpty) {
       return 0.0;
     }
 
-    if (comandoLimpo ==
-        aliasLimpo) {
+    if (comandoLimpo == aliasLimpo) {
       return 1.0;
     }
 
-    if (_contemPalavraOuExpressao(
-      comandoLimpo,
-      aliasLimpo,
-    )) {
+    if (_contemPalavraOuExpressao(comandoLimpo, aliasLimpo)) {
       return 0.97;
     }
 
     /*
      * Compara a expressão completa.
      */
-    var pontuacao =
-        _similaridade(
-      comandoLimpo.replaceAll(
-        ' ',
-        '',
-      ),
-      aliasLimpo.replaceAll(
-        ' ',
-        '',
-      ),
+    var pontuacao = _similaridade(
+      comandoLimpo.replaceAll(' ', ''),
+      aliasLimpo.replaceAll(' ', ''),
     );
 
     /*
@@ -1287,33 +961,18 @@ class ControleVoz extends ChangeNotifier {
      * "sala de informática"
      * -> "sala de forma tica"
      */
-    final palavrasComando =
-        _tokensRelevantes(
-      comandoLimpo,
-    );
+    final palavrasComando = _tokensRelevantes(comandoLimpo);
 
-    final palavrasAlias =
-        _tokensRelevantes(
-      aliasLimpo,
-    );
+    final palavrasAlias = _tokensRelevantes(aliasLimpo);
 
-    if (palavrasComando.isNotEmpty &&
-        palavrasAlias.isNotEmpty) {
-      var soma =
-          0.0;
+    if (palavrasComando.isNotEmpty && palavrasAlias.isNotEmpty) {
+      var soma = 0.0;
 
-      for (final palavraAlias
-          in palavrasAlias) {
-        var melhor =
-            0.0;
+      for (final palavraAlias in palavrasAlias) {
+        var melhor = 0.0;
 
-        for (final palavraComando
-            in palavrasComando) {
-          final atual =
-              _similaridade(
-            palavraComando,
-            palavraAlias,
-          );
+        for (final palavraComando in palavrasComando) {
+          final atual = _similaridade(palavraComando, palavraAlias);
 
           if (atual > melhor) {
             melhor = atual;
@@ -1323,44 +982,24 @@ class ControleVoz extends ChangeNotifier {
         soma += melhor;
       }
 
-      final media =
-          soma /
-          palavrasAlias.length;
+      final media = soma / palavrasAlias.length;
 
-      pontuacao = max(
-        pontuacao,
-        media * 0.97,
-      );
+      pontuacao = max(pontuacao, media * 0.97);
     }
 
-    return pontuacao.clamp(
-      0.0,
-      1.0,
-    );
+    return pontuacao.clamp(0.0, 1.0);
   }
 
-  bool _contemPalavraOuExpressao(
-    String texto,
-    String expressao,
-  ) {
-    final textoCompleto =
-        ' $texto ';
+  bool _contemPalavraOuExpressao(String texto, String expressao) {
+    final textoCompleto = ' $texto ';
 
-    final expressaoCompleta =
-        ' $expressao ';
+    final expressaoCompleta = ' $expressao ';
 
-    return textoCompleto.contains(
-      expressaoCompleta,
-    );
+    return textoCompleto.contains(expressaoCompleta);
   }
 
-  String _limparComandoDestino(
-    String texto,
-  ) {
-    var resultado =
-        _normalizar(
-      texto,
-    );
+  String _limparComandoDestino(String texto) {
+    var resultado = _normalizar(texto);
 
     const expressoes = [
       'eu quero ir para',
@@ -1391,13 +1030,8 @@ class ControleVoz extends ChangeNotifier {
       'ir ao',
     ];
 
-    for (final expressao
-        in expressoes) {
-      resultado =
-          resultado.replaceAll(
-        expressao,
-        ' ',
-      );
+    for (final expressao in expressoes) {
+      resultado = resultado.replaceAll(expressao, ' ');
     }
 
     const ignorar = {
@@ -1435,19 +1069,11 @@ class ControleVoz extends ChangeNotifier {
 
     return resultado
         .split(' ')
-        .where(
-          (palavra) =>
-              palavra.isNotEmpty &&
-              !ignorar.contains(
-                palavra,
-              ),
-        )
+        .where((palavra) => palavra.isNotEmpty && !ignorar.contains(palavra))
         .join(' ');
   }
 
-  List<String> _tokensRelevantes(
-    String texto,
-  ) {
+  List<String> _tokensRelevantes(String texto) {
     const ignorar = {
       'sala',
       'de',
@@ -1463,22 +1089,12 @@ class ControleVoz extends ChangeNotifier {
 
     return texto
         .split(' ')
-        .where(
-          (palavra) =>
-              palavra.length >= 2 &&
-              !ignorar.contains(
-                palavra,
-              ),
-        )
+        .where((palavra) => palavra.length >= 2 && !ignorar.contains(palavra))
         .toList();
   }
 
-  double _similaridade(
-    String a,
-    String b,
-  ) {
-    if (a.isEmpty ||
-        b.isEmpty) {
+  double _similaridade(String a, String b) {
+    if (a.isEmpty || b.isEmpty) {
       return 0;
     }
 
@@ -1486,27 +1102,14 @@ class ControleVoz extends ChangeNotifier {
       return 1;
     }
 
-    final distancia =
-        _distanciaLevenshtein(
-      a,
-      b,
-    );
+    final distancia = _distanciaLevenshtein(a, b);
 
-    final maior =
-        max(
-      a.length,
-      b.length,
-    );
+    final maior = max(a.length, b.length);
 
-    return 1 -
-        distancia /
-            maior;
+    return 1 - distancia / maior;
   }
 
-  int _distanciaLevenshtein(
-    String a,
-    String b,
-  ) {
+  int _distanciaLevenshtein(String a, String b) {
     if (a.isEmpty) {
       return b.length;
     }
@@ -1515,64 +1118,33 @@ class ControleVoz extends ChangeNotifier {
       return a.length;
     }
 
-    var anterior =
-        List<int>.generate(
-      b.length + 1,
-      (i) => i,
-    );
+    var anterior = List<int>.generate(b.length + 1, (i) => i);
 
-    for (var i = 1;
-        i <= a.length;
-        i++) {
-      final atual =
-          List<int>.filled(
-        b.length + 1,
-        0,
-      );
+    for (var i = 1; i <= a.length; i++) {
+      final atual = List<int>.filled(b.length + 1, 0);
 
       atual[0] = i;
 
-      for (var j = 1;
-          j <= b.length;
-          j++) {
-        final custo =
-            a[i - 1] ==
-                    b[j - 1]
-                ? 0
-                : 1;
+      for (var j = 1; j <= b.length; j++) {
+        final custo = a[i - 1] == b[j - 1] ? 0 : 1;
 
         atual[j] = min(
-          min(
-            atual[j - 1] + 1,
-            anterior[j] + 1,
-          ),
-          anterior[j - 1] +
-              custo,
+          min(atual[j - 1] + 1, anterior[j] + 1),
+          anterior[j - 1] + custo,
         );
       }
 
       anterior = atual;
     }
 
-    return anterior[
-        b.length];
+    return anterior[b.length];
   }
 
-  Local? _buscarLocalPorNome(
-    String nome,
-  ) {
-    final busca =
-        _normalizar(
-      nome,
-    );
+  Local? _buscarLocalPorNome(String nome) {
+    final busca = _normalizar(nome);
 
-    for (final local
-        in navegacao.locais) {
-      if (_normalizar(
-        local.nome,
-      ).contains(
-        busca,
-      )) {
+    for (final local in navegacao.locais) {
+      if (_normalizar(local.nome).contains(busca)) {
         return local;
       }
     }
@@ -1592,21 +1164,12 @@ class ControleVoz extends ChangeNotifier {
    * Depois do teste real adicionaremos as
    * variações que realmente acontecerem.
    */
-  List<String> _aliasesDoLocal(
-    Local local,
-  ) {
-    final nome =
-        _normalizar(
-      local.nome,
-    );
+  List<String> _aliasesDoLocal(Local local) {
+    final nome = _normalizar(local.nome);
 
-    final aliases =
-        <String>{
-      nome,
-    };
+    final aliases = <String>{nome};
 
-    var simplificado =
-        nome;
+    var simplificado = nome;
 
     for (final prefixo in [
       'sala de ',
@@ -1616,28 +1179,18 @@ class ControleVoz extends ChangeNotifier {
       'sala das ',
       'sala ',
     ]) {
-      if (simplificado.startsWith(
-        prefixo,
-      )) {
-        simplificado =
-            simplificado.substring(
-          prefixo.length,
-        );
+      if (simplificado.startsWith(prefixo)) {
+        simplificado = simplificado.substring(prefixo.length);
 
         break;
       }
     }
 
-    aliases.add(
-      simplificado,
-    );
+    aliases.add(simplificado);
 
     switch (nome) {
       case 'sala maker':
-        aliases.addAll([
-          'maker',
-          'espaco maker',
-        ]);
+        aliases.addAll(['maker', 'espaco maker']);
         break;
 
       case 'sala de informatica':
@@ -1649,65 +1202,42 @@ class ControleVoz extends ChangeNotifier {
         break;
 
       case 'sala da coordenacao':
-        aliases.addAll([
-          'coordenacao',
-        ]);
+        aliases.addAll(['coordenacao']);
         break;
 
       case 'sala de musica':
-        aliases.addAll([
-          'musica',
-        ]);
+        aliases.addAll(['musica']);
         break;
 
       case 'sala de artes':
-        aliases.addAll([
-          'arte',
-          'artes',
-        ]);
+        aliases.addAll(['arte', 'artes']);
         break;
 
       case 'sala de esportes':
-        aliases.addAll([
-          'esporte',
-          'esportes',
-        ]);
+        aliases.addAll(['esporte', 'esportes']);
         break;
 
       case 'banheiros':
-        aliases.addAll([
-          'banheiro',
-          'banheiros',
-        ]);
+        aliases.addAll(['banheiro', 'banheiros']);
         break;
 
       case 'recepcao':
-        aliases.addAll([
-          'recepcao',
-        ]);
+        aliases.addAll(['recepcao']);
         break;
 
       case 'deposito':
-        aliases.addAll([
-          'deposito',
-          'almoxarifado',
-        ]);
+        aliases.addAll(['deposito', 'almoxarifado']);
         break;
 
       case 'entrada':
-        aliases.addAll([
-          'entrada',
-          'entrada principal',
-        ]);
+        aliases.addAll(['entrada', 'entrada principal']);
         break;
     }
 
     return aliases.toList();
   }
 
-  String _normalizar(
-    String texto,
-  ) {
+  String _normalizar(String texto) {
     return texto
         .toLowerCase()
         .replaceAll('á', 'a')
@@ -1733,27 +1263,15 @@ class ControleVoz extends ChangeNotifier {
         .replaceAll('û', 'u')
         .replaceAll('ü', 'u')
         .replaceAll('ç', 'c')
-        .replaceAll(
-          RegExp(
-            r'[^a-z0-9\s]',
-          ),
-          ' ',
-        )
-        .replaceAll(
-          RegExp(
-            r'\s+',
-          ),
-          ' ',
-        )
+        .replaceAll(RegExp(r'[^a-z0-9\s]'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
   }
 
   @override
   void dispose() {
     if (_inicializado) {
-      navegacao.removeListener(
-        _navegacaoMudou,
-      );
+      navegacao.removeListener(_navegacaoMudou);
     }
 
     super.dispose();
@@ -1761,10 +1279,7 @@ class ControleVoz extends ChangeNotifier {
 }
 
 class _CandidatoDestino {
-  const _CandidatoDestino({
-    required this.local,
-    required this.confianca,
-  });
+  const _CandidatoDestino({required this.local, required this.confianca});
 
   final Local local;
   final double confianca;

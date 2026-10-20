@@ -6,13 +6,9 @@ import '../../../core/config/api_config.dart';
 class NavigationSocketService {
   io.Socket? _socket;
 
-  bool get conectado =>
-      _socket?.connected ?? false;
+  bool get conectado => _socket?.connected ?? false;
 
-  void conectar({
-    required Future<void> Function()
-        onNavigationConfigUpdated,
-  }) {
+  void conectar({required Future<void> Function() onNavigationConfigUpdated}) {
     if (_socket != null) return;
 
     final socket = io.io(
@@ -27,45 +23,30 @@ class NavigationSocketService {
     _socket = socket;
 
     socket.onConnect((_) {
-      debugPrint(
-        '[SOCKET] Conectado ao backend.',
-      );
+      debugPrint('[SOCKET] Conectado ao backend.');
     });
 
     socket.onDisconnect((_) {
-      debugPrint(
-        '[SOCKET] Desconectado do backend.',
-      );
+      debugPrint('[SOCKET] Desconectado do backend.');
     });
 
     socket.onConnectError((error) {
-      debugPrint(
-        '[SOCKET] Erro de conexão: $error',
-      );
+      debugPrint('[SOCKET] Erro de conexão: $error');
     });
 
     socket.onError((error) {
-      debugPrint(
-        '[SOCKET] Erro: $error',
-      );
+      debugPrint('[SOCKET] Erro: $error');
     });
 
-    socket.on(
-      'navigation_config_updated',
-      (_) async {
-        debugPrint(
-          '[SOCKET] Configuração de navegação alterada.',
-        );
+    socket.on('navigation_config_updated', (_) async {
+      debugPrint('[SOCKET] Configuração de navegação alterada.');
 
-        try {
-          await onNavigationConfigUpdated();
-        } catch (error) {
-          debugPrint(
-            '[SOCKET] Falha ao atualizar configuração: $error',
-          );
-        }
-      },
-    );
+      try {
+        await onNavigationConfigUpdated();
+      } catch (error) {
+        debugPrint('[SOCKET] Falha ao atualizar configuração: $error');
+      }
+    });
 
     socket.connect();
   }

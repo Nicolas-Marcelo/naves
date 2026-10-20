@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   flutter_blue_plus_winrt
+  flutter_secure_storage_windows
   flutter_tts
   share_plus
   url_launcher_windows

@@ -4,6 +4,5 @@ abstract final class ApiConfig {
     defaultValue: 'http://192.168.0.100:3000',
   );
 
-  static const navigationConfig =
-      '$baseUrl/api/navigation/config';
+  static const navigationConfig = '$baseUrl/api/navigation/config';
 }

@@ -1,4 +1,5 @@
 import '../../../core/config/beacon_config.dart';
+
 import '../domain/entities/conexao.dart';
 import '../domain/entities/grafo.dart';
 import '../domain/entities/local.dart';
@@ -26,74 +27,117 @@ class NavigationConfigData {
     Map<String, dynamic> json,
   ) {
     final nodes =
-        (json['nodes'] as List<dynamic>)
-            .cast<Map<String, dynamic>>();
+        (json['nodes'] as List<dynamic>? ?? [])
+            .whereType<Map>()
+            .map(
+              (item) =>
+                  Map<String, dynamic>.from(
+                item,
+              ),
+            )
+            .toList();
 
     final edges =
-        (json['edges'] as List<dynamic>)
-            .cast<Map<String, dynamic>>();
+        (json['edges'] as List<dynamic>? ?? [])
+            .whereType<Map>()
+            .map(
+              (item) =>
+                  Map<String, dynamic>.from(
+                item,
+              ),
+            )
+            .toList();
 
     final pois =
-        (json['pois'] as List<dynamic>)
-            .cast<Map<String, dynamic>>();
+        (json['pois'] as List<dynamic>? ?? [])
+            .whereType<Map>()
+            .map(
+              (item) =>
+                  Map<String, dynamic>.from(
+                item,
+              ),
+            )
+            .toList();
 
-    final pontos = nodes.map((node) {
-      return Ponto(
-        id: node['id'] as String,
-        x: (node['x'] as num).toDouble(),
-        y: (node['y'] as num).toDouble(),
-      );
-    }).toList();
+    final pontos = nodes.map(
+      (node) {
+        return Ponto(
+          id: '${node['id'] ?? ''}',
+          x: _numero(
+            node['x'],
+          ),
+          y: _numero(
+            node['y'],
+          ),
+        );
+      },
+    ).toList();
 
-    final conexoes = edges.map((edge) {
-      return Conexao(
-        origem: edge['origin'] as String,
-        destino: edge['destination'] as String,
-        distancia:
-            (edge['distance'] as num).toDouble(),
-      );
-    }).toList();
+    final conexoes = edges.map(
+      (edge) {
+        return Conexao(
+          origem:
+              '${edge['origin'] ?? ''}',
+          destino:
+              '${edge['destination'] ?? ''}',
+          distancia: _numero(
+            edge['distance'],
+          ),
+        );
+      },
+    ).toList();
 
-    final locais = pois.map((poi) {
-      return Local(
-        nome: poi['name'] as String,
-        pontoId: poi['nodeId'] as String,
-      );
-    }).toList();
+    final locais = pois.map(
+      (poi) {
+        return Local.fromJson(
+          poi,
+        );
+      },
+    ).toList();
 
     final beacons = nodes
         .where(
           (node) =>
               node['mac'] != null &&
-              '${node['mac']}'.trim().isNotEmpty,
+              '${node['mac']}'
+                  .trim()
+                  .isNotEmpty,
         )
-        .map((node) {
-          final id =
-              node['id'] as String;
+        .map(
+          (node) {
+            final id =
+                '${node['id'] ?? ''}';
 
-          return BeaconInfo(
-            nodeId: id,
-            nome:
-                (node['advertisingName']
-                            as String?)
-                        ?.trim()
-                        .isNotEmpty ==
-                    true
-                ? node['advertisingName']
-                    as String
-                : id,
-            mac: node['mac'] as String,
-          );
-        })
+            final advertisingName =
+                '${node['advertisingName'] ?? ''}'
+                    .trim();
+
+            return BeaconInfo(
+              nodeId: id,
+              nome:
+                  advertisingName.isNotEmpty
+                      ? advertisingName
+                      : id,
+              mac:
+                  '${node['mac'] ?? ''}',
+            );
+          },
+        )
         .toList();
 
     return NavigationConfigData(
-      version: json['version'] as int,
-      generatedAt: DateTime.parse(
-        json['generatedAt'] as String,
+      version:
+          _inteiro(
+        json['version'],
+      ),
+      generatedAt:
+          _data(
+        json['generatedAt'],
       ),
       environmentId:
-          json['environmentId'] as int?,
+          _inteiroOuNull(
+        json['environmentId'],
+      ),
       grafo: Grafo(
         pontos: pontos,
         conexoes: conexoes,
@@ -101,5 +145,66 @@ class NavigationConfigData {
       locais: locais,
       beacons: beacons,
     );
+  }
+
+  static double _numero(
+    dynamic value,
+  ) {
+    if (value is num) {
+      return value.toDouble();
+    }
+
+    return double.tryParse(
+          '$value',
+        ) ??
+        0.0;
+  }
+
+  static int _inteiro(
+    dynamic value,
+  ) {
+    if (value is int) {
+      return value;
+    }
+
+    if (value is num) {
+      return value.toInt();
+    }
+
+    return int.tryParse(
+          '$value',
+        ) ??
+        0;
+  }
+
+  static int? _inteiroOuNull(
+    dynamic value,
+  ) {
+    if (value == null) return null;
+
+    if (value is int) {
+      return value;
+    }
+
+    if (value is num) {
+      return value.toInt();
+    }
+
+    return int.tryParse(
+      '$value',
+    );
+  }
+
+  static DateTime _data(
+    dynamic value,
+  ) {
+    if (value == null) {
+      return DateTime.now();
+    }
+
+    return DateTime.tryParse(
+          '$value',
+        ) ??
+        DateTime.now();
   }
 }

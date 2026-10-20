@@ -54,16 +54,11 @@ class CardLocalizacao extends StatelessWidget {
           : 'Buscando sua localização',
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 18,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: const Color(0xFFE5EAED),
-          ),
+          border: Border.all(color: const Color(0xFFE5EAED)),
           boxShadow: const [
             BoxShadow(
               color: Color(0x0A000000),
@@ -102,17 +97,13 @@ class CardLocalizacao extends StatelessWidget {
                         width: 7,
                         height: 7,
                         decoration: BoxDecoration(
-                          color: localizado
-                              ? _verde
-                              : Colors.orange.shade600,
+                          color: localizado ? _verde : Colors.orange.shade600,
                           shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: 7),
                       Text(
-                        localizado
-                            ? 'LOCALIZAÇÃO IDENTIFICADA'
-                            : 'LOCALIZANDO',
+                        localizado ? 'LOCALIZAÇÃO IDENTIFICADA' : 'LOCALIZANDO',
                         style: TextStyle(
                           color: localizado ? _verde : _cinza,
                           fontSize: 11,

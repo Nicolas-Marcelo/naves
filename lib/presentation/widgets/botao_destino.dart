@@ -14,14 +14,10 @@ class BotaoDestino extends StatelessWidget {
 
   final List<Local> locais;
 
-  final Future<void> Function(Local local)
-      onDestinoSelecionado;
+  final Future<void> Function(Local local) onDestinoSelecionado;
 
-  Future<void> _abrirDestinos(
-    BuildContext context,
-  ) async {
-    final destino =
-        await showModalBottomSheet<Local>(
+  Future<void> _abrirDestinos(BuildContext context) async {
+    final destino = await showModalBottomSheet<Local>(
       context: context,
       showDragHandle: false,
       isScrollControlled: true,
@@ -32,16 +28,11 @@ class BotaoDestino extends StatelessWidget {
           minChildSize: 0.40,
           maxChildSize: 0.92,
           expand: false,
-          builder: (
-            context,
-            scrollController,
-          ) {
+          builder: (context, scrollController) {
             return Container(
               decoration: const BoxDecoration(
                 color: Color(0xFFF8FAFB),
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(30),
-                ),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
               ),
               child: Column(
                 children: [
@@ -51,17 +42,11 @@ class BotaoDestino extends StatelessWidget {
                     height: 5,
                     decoration: BoxDecoration(
                       color: const Color(0xFFD5DDE1),
-                      borderRadius:
-                          BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                   const Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      22,
-                      24,
-                      22,
-                      6,
-                    ),
+                    padding: EdgeInsets.fromLTRB(22, 24, 22, 6),
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
@@ -75,112 +60,65 @@ class BotaoDestino extends StatelessWidget {
                     ),
                   ),
                   const Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      22,
-                      0,
-                      22,
-                      16,
-                    ),
+                    padding: EdgeInsets.fromLTRB(22, 0, 22, 16),
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
                         'Selecione um dos locais disponíveis.',
-                        style: TextStyle(
-                          color: _cinza,
-                          fontSize: 14,
-                        ),
+                        style: TextStyle(color: _cinza, fontSize: 14),
                       ),
                     ),
                   ),
                   Expanded(
                     child: ListView.separated(
                       controller: scrollController,
-                      padding: const EdgeInsets.fromLTRB(
-                        16,
-                        0,
-                        16,
-                        28,
-                      ),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
                       itemCount: locais.length,
-                      separatorBuilder:
-                          (context, index) =>
-                              const SizedBox(
-                        height: 9,
-                      ),
-                      itemBuilder:
-                          (context, index) {
-                        final local =
-                            locais[index];
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 9),
+                      itemBuilder: (context, index) {
+                        final local = locais[index];
 
                         return Semantics(
                           button: true,
-                          label:
-                              'Ir para ${local.nome}',
+                          label: 'Ir para ${local.nome}',
                           child: Material(
                             color: Colors.white,
-                            borderRadius:
-                                BorderRadius.circular(
-                              18,
-                            ),
+                            borderRadius: BorderRadius.circular(18),
                             child: InkWell(
-                              borderRadius:
-                                  BorderRadius.circular(
-                                18,
-                              ),
+                              borderRadius: BorderRadius.circular(18),
                               onTap: () {
-                                Navigator.pop(
-                                  context,
-                                  local,
-                                );
+                                Navigator.pop(context, local);
                               },
                               child: Padding(
-                                padding:
-                                    const EdgeInsets.all(
-                                  16,
-                                ),
+                                padding: const EdgeInsets.all(16),
                                 child: Row(
                                   children: [
                                     Container(
                                       width: 46,
                                       height: 46,
-                                      decoration:
-                                          BoxDecoration(
-                                        color: _azul
-                                            .withValues(
-                                          alpha: 0.07,
-                                        ),
-                                        borderRadius:
-                                            BorderRadius
-                                                .circular(
-                                          14,
-                                        ),
+                                      decoration: BoxDecoration(
+                                        color: _azul.withValues(alpha: 0.07),
+                                        borderRadius: BorderRadius.circular(14),
                                       ),
-                                      child:
-                                          const Icon(
-                                        Icons
-                                            .place_rounded,
+                                      child: const Icon(
+                                        Icons.place_rounded,
                                         color: _azul,
                                       ),
                                     ),
-                                    const SizedBox(
-                                      width: 14,
-                                    ),
+                                    const SizedBox(width: 14),
                                     Expanded(
                                       child: Text(
                                         local.nome,
-                                        style:
-                                            const TextStyle(
+                                        style: const TextStyle(
                                           color: _azul,
                                           fontSize: 17,
-                                          fontWeight:
-                                              FontWeight
-                                                  .w700,
+                                          fontWeight: FontWeight.w700,
                                         ),
                                       ),
                                     ),
                                     const Icon(
-                                      Icons
-                                          .arrow_forward_ios_rounded,
+                                      Icons.arrow_forward_ios_rounded,
                                       size: 17,
                                       color: _cinza,
                                     ),
@@ -203,9 +141,7 @@ class BotaoDestino extends StatelessWidget {
 
     if (destino == null) return;
 
-    await onDestinoSelecionado(
-      destino,
-    );
+    await onDestinoSelecionado(destino);
   }
 
   @override
@@ -217,29 +153,18 @@ class BotaoDestino extends StatelessWidget {
         width: double.infinity,
         height: 58,
         child: OutlinedButton.icon(
-          onPressed: locais.isEmpty
-              ? null
-              : () =>
-                  _abrirDestinos(context),
-          icon: const Icon(
-            Icons.map_outlined,
-          ),
+          onPressed: locais.isEmpty ? null : () => _abrirDestinos(context),
+          icon: const Icon(Icons.map_outlined),
           label: const Text(
             'Escolher destino',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
           ),
           style: OutlinedButton.styleFrom(
             foregroundColor: _azul,
             backgroundColor: Colors.white,
-            side: const BorderSide(
-              color: Color(0xFFDDE5E9),
-            ),
+            side: const BorderSide(color: Color(0xFFDDE5E9)),
             shape: RoundedRectangleBorder(
-              borderRadius:
-                  BorderRadius.circular(17),
+              borderRadius: BorderRadius.circular(17),
             ),
           ),
         ),

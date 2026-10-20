@@ -5,9 +5,12 @@ import 'package:flutter_tts/flutter_tts.dart';
 
 import '../../accessibility/data/servico_feedback_tatil.dart';
 import '../../localization/presentation/localization_controller.dart';
+
 import '../domain/entities/grafo.dart';
 import '../domain/entities/local.dart';
+import '../domain/entities/poi_approach.dart';
 import '../domain/entities/rota.dart';
+
 import '../domain/services/calculador_rota.dart';
 import '../domain/services/gerador_orientacao.dart';
 
@@ -22,80 +25,137 @@ class ControleNavegacao extends ChangeNotifier {
     this.depoisDeFalar,
     this.geradorOrientacao = const GeradorOrientacao(),
   }) {
-    localizacao.addListener(_mudouLocalizacao);
-    _vozPronta = _configurarVoz();
+    localizacao.addListener(
+      _mudouLocalizacao,
+    );
+
+    _vozPronta =
+        _configurarVoz();
   }
 
   final LocalizationController localizacao;
+
   Grafo grafo;
 
   final CalculadorRota calculador;
+
   List<Local> locais;
 
   final GeradorOrientacao geradorOrientacao;
+
   final ServicoFeedbackTatil feedbackTatil;
 
   final Future<void> Function()? antesDeFalar;
   final Future<void> Function()? depoisDeFalar;
 
-  final FlutterTts _voz = FlutterTts();
+  final FlutterTts _voz =
+      FlutterTts();
 
   late final Future<void> _vozPronta;
 
   Local? destino;
   Rota? rota;
+
   String? proximoPonto;
 
-  String estado = 'SEM_ROTA';
-  String mensagem = 'Escolha um destino.';
+  String estado =
+      'SEM_ROTA';
+
+  String mensagem =
+      'Escolha um destino.';
 
   String orientacaoAtual =
       'Escolha um destino para iniciar a navegação.';
 
-  String _ultimoPonto = '';
-  int _idFala = 0;
+  String _ultimoPonto =
+      '';
 
-  String get pontoAtual => localizacao.noAtual;
+  String _pontoAnteriorRota =
+      '';
+
+  int _idFala =
+      0;
+
+  String get pontoAtual =>
+      localizacao.noAtual;
+
+  String get pontoAnterior =>
+      _pontoAnteriorRota;
+
+  bool get navegando =>
+      destino != null &&
+      rota != null &&
+      (estado == 'ROTA_ATIVA' ||
+          estado ==
+              'ROTA_RECALCULADA');
 
   void atualizarConfiguracao({
     required Grafo novoGrafo,
     required List<Local> novosLocais,
   }) {
-    final destinoAnterior = destino;
+    final destinoAnterior =
+        destino;
 
-    grafo = novoGrafo;
-    locais = List.unmodifiable(novosLocais);
+    grafo =
+        novoGrafo;
 
-    rota = null;
-    proximoPonto = null;
+    locais =
+        List.unmodifiable(
+      novosLocais,
+    );
+
+    rota =
+        null;
+
+    proximoPonto =
+        null;
 
     if (destinoAnterior != null) {
       Local? destinoAtualizado;
 
       for (final local in locais) {
-        if (local.nome == destinoAnterior.nome) {
-          destinoAtualizado = local;
+        if (local.nome ==
+            destinoAnterior.nome) {
+          destinoAtualizado =
+              local;
+
           break;
         }
       }
 
-      if (destinoAtualizado != null) {
-        destino = destinoAtualizado;
+      if (destinoAtualizado !=
+          null) {
+        destino =
+            destinoAtualizado;
 
-        estado = 'DESTINO_SELECIONADO';
-        mensagem = 'Destino selecionado: ${destinoAtualizado.nome}.';
-        orientacaoAtual = 'Aguardando início da navegação.';
+        estado =
+            'DESTINO_SELECIONADO';
+
+        mensagem =
+            'Destino selecionado: ${destinoAtualizado.nome}.';
+
+        orientacaoAtual =
+            'Aguardando início da navegação.';
       } else {
-        destino = null;
+        destino =
+            null;
 
-        estado = 'SEM_ROTA';
+        estado =
+            'SEM_ROTA';
+
         mensagem =
             'O destino selecionado não está mais disponível.';
-        orientacaoAtual = mensagem;
+
+        orientacaoAtual =
+            mensagem;
       }
     }
 
-    _ultimoPonto = pontoAtual;
+    _ultimoPonto =
+        pontoAtual;
+
+    _pontoAnteriorRota =
+        '';
 
     debugPrint(
       '[NAVEGACAO] Configuração atualizada | '
@@ -108,43 +168,81 @@ class ControleNavegacao extends ChangeNotifier {
   }
 
   Future<void> _configurarVoz() async {
-    await _voz.setLanguage('pt-BR');
-    await _voz.setVolume(1.0);
-    await _voz.setPitch(1.0);
-    await _voz.setSpeechRate(kIsWeb ? 1.0 : 0.68);
-    await _voz.awaitSpeakCompletion(true);
+    await _voz.setLanguage(
+      'pt-BR',
+    );
+
+    await _voz.setVolume(
+      1.0,
+    );
+
+    await _voz.setPitch(
+      1.0,
+    );
+
+    await _voz.setSpeechRate(
+      kIsWeb ? 1.0 : 0.68,
+    );
+
+    await _voz.awaitSpeakCompletion(
+      true,
+    );
 
     if (!kIsWeb &&
-        defaultTargetPlatform == TargetPlatform.android) {
+        defaultTargetPlatform ==
+            TargetPlatform.android) {
       try {
-        await _voz.setAudioAttributesForNavigation();
+        await _voz
+            .setAudioAttributesForNavigation();
       } catch (_) {}
     }
 
     try {
-      final resultado = await _voz.getVoices;
+      final resultado =
+          await _voz.getVoices;
 
-      if (resultado is! List) return;
+      if (resultado is! List) {
+        return;
+      }
 
-      final vozes = resultado.whereType<Map>().where((voz) {
-        final locale = '${voz['locale'] ?? ''}'
-            .toLowerCase()
-            .replaceAll('_', '-');
+      final vozes =
+          resultado
+              .whereType<Map>()
+              .where(
+        (voz) {
+          final locale =
+              '${voz['locale'] ?? ''}'
+                  .toLowerCase()
+                  .replaceAll(
+                    '_',
+                    '-',
+                  );
 
-        return locale == 'pt-br' ||
-            locale.startsWith('pt-br');
-      }).toList();
+          return locale ==
+                  'pt-br' ||
+              locale.startsWith(
+                'pt-br',
+              );
+        },
+      ).toList();
 
-      if (vozes.isEmpty) return;
+      if (vozes.isEmpty) {
+        return;
+      }
 
       vozes.sort(
         (a, b) =>
-            _pontuacaoVoz(b).compareTo(
-          _pontuacaoVoz(a),
-        ),
+            _pontuacaoVoz(
+              b,
+            ).compareTo(
+              _pontuacaoVoz(
+                a,
+              ),
+            ),
       );
 
-      final escolhida = vozes.first;
+      final escolhida =
+          vozes.first;
 
       final nome =
           '${escolhida['name'] ?? ''}';
@@ -161,21 +259,50 @@ class ControleNavegacao extends ChangeNotifier {
     } catch (_) {}
   }
 
-  int _pontuacaoVoz(Map voz) {
+  int _pontuacaoVoz(
+    Map voz,
+  ) {
     final nome =
-        '${voz['name'] ?? ''}'.toLowerCase();
+        '${voz['name'] ?? ''}'
+            .toLowerCase();
 
-    var pontos = 0;
+    var pontos =
+        0;
 
-    if (nome.contains('natural')) pontos += 100;
-    if (nome.contains('google')) pontos += 60;
-    if (nome.contains('brasil')) pontos += 40;
-    if (nome.contains('brazil')) pontos += 40;
+    if (nome.contains(
+      'natural',
+    )) {
+      pontos +=
+          100;
+    }
 
-    final qualidade = voz['quality'];
+    if (nome.contains(
+      'google',
+    )) {
+      pontos +=
+          60;
+    }
+
+    if (nome.contains(
+      'brasil',
+    )) {
+      pontos +=
+          40;
+    }
+
+    if (nome.contains(
+      'brazil',
+    )) {
+      pontos +=
+          40;
+    }
+
+    final qualidade =
+        voz['quality'];
 
     if (qualidade is num) {
-      pontos += qualidade.toInt();
+      pontos +=
+          qualidade.toInt();
     }
 
     return pontos;
@@ -185,22 +312,32 @@ class ControleNavegacao extends ChangeNotifier {
     String texto, {
     bool retomarEscuta = true,
   }) async {
-    if (texto.trim().isEmpty) return;
+    if (texto.trim().isEmpty) {
+      return;
+    }
 
-    final idAtual = ++_idFala;
+    final idAtual =
+        ++_idFala;
 
     await _vozPronta;
 
-    if (idAtual != _idFala) return;
+    if (idAtual !=
+        _idFala) {
+      return;
+    }
 
-    if (antesDeFalar != null) {
+    if (antesDeFalar !=
+        null) {
       await antesDeFalar!();
     }
 
     try {
       await _voz.stop();
 
-      if (idAtual != _idFala) return;
+      if (idAtual !=
+          _idFala) {
+        return;
+      }
 
       await _voz.speak(
         texto,
@@ -208,8 +345,10 @@ class ControleNavegacao extends ChangeNotifier {
       );
     } finally {
       if (retomarEscuta &&
-          idAtual == _idFala &&
-          depoisDeFalar != null) {
+          idAtual ==
+              _idFala &&
+          depoisDeFalar !=
+              null) {
         await depoisDeFalar!();
       }
     }
@@ -221,7 +360,8 @@ class ControleNavegacao extends ChangeNotifier {
   }) async {
     await _falar(
       texto,
-      retomarEscuta: retomarEscuta,
+      retomarEscuta:
+          retomarEscuta,
     );
   }
 
@@ -229,6 +369,7 @@ class ControleNavegacao extends ChangeNotifier {
     _idFala++;
 
     await _vozPronta;
+
     await _voz.stop();
   }
 
@@ -244,7 +385,9 @@ class ControleNavegacao extends ChangeNotifier {
     }
 
     final nomes =
-        _locaisDoPonto(pontoAtual);
+        _locaisDoPonto(
+      pontoAtual,
+    );
 
     if (nomes.isEmpty) {
       return 'Sua localização foi identificada.';
@@ -256,10 +399,6 @@ class ControleNavegacao extends ChangeNotifier {
   String descricaoDestinoAtual() {
     if (destino == null) {
       return 'Você não possui um destino definido.';
-    }
-
-    if (estado == 'DESTINO_ALCANCADO') {
-      return 'Você chegou ao destino ${destino!.nome}.';
     }
 
     return 'Seu destino atual é ${destino!.nome}.';
@@ -278,11 +417,6 @@ class ControleNavegacao extends ChangeNotifier {
           'Você não possui uma rota ativa.';
     }
 
-    if (estado == 'DESTINO_ALCANCADO') {
-      return '$localizacaoTexto '
-          'Você chegou ao seu destino.';
-    }
-
     return '$localizacaoTexto '
         'Seu destino é ${destino!.nome}. '
         '$orientacaoAtual';
@@ -293,18 +427,24 @@ class ControleNavegacao extends ChangeNotifier {
       return 'Ainda não consegui identificar sua localização.';
     }
 
-    final pontosProximos = <String>{
+    final pontosProximos =
+        <String>{
       pontoAtual,
-      ...grafo.vizinhos(pontoAtual),
+      ...grafo.vizinhos(
+        pontoAtual,
+      ),
     };
 
-    final nomes = <String>{};
+    final nomes =
+        <String>{};
 
     for (final local in locais) {
       if (pontosProximos.contains(
         local.pontoId,
       )) {
-        nomes.add(local.nome);
+        nomes.add(
+          local.nome,
+        );
       }
     }
 
@@ -312,8 +452,7 @@ class ControleNavegacao extends ChangeNotifier {
       return 'Não encontrei locais próximos cadastrados.';
     }
 
-    return 'Próximo de você estão '
-        '${_juntarNomes(nomes.toList())}.';
+    return 'Próximo de você estão ${_juntarNomes(nomes.toList())}.';
   }
 
   List<String> _locaisDoPonto(
@@ -322,7 +461,8 @@ class ControleNavegacao extends ChangeNotifier {
     return locais
         .where(
           (local) =>
-              local.pontoId == pontoId,
+              local.pontoId ==
+              pontoId,
         )
         .map(
           (local) =>
@@ -334,29 +474,41 @@ class ControleNavegacao extends ChangeNotifier {
   String _juntarNomes(
     List<String> nomes,
   ) {
-    if (nomes.isEmpty) return '';
+    if (nomes.isEmpty) {
+      return '';
+    }
 
-    if (nomes.length == 1) {
+    if (nomes.length ==
+        1) {
       return nomes.first;
     }
 
-    if (nomes.length == 2) {
+    if (nomes.length ==
+        2) {
       return '${nomes[0]} e ${nomes[1]}';
     }
 
-    return '${nomes.sublist(0, nomes.length - 1).join(', ')} '
-        'e ${nomes.last}';
+    return '${nomes.sublist(0, nomes.length - 1).join(', ')} e ${nomes.last}';
   }
 
   void selecionarDestino(
     Local? local,
   ) {
-    destino = local;
-    rota = null;
-    proximoPonto = null;
+    destino =
+        local;
+
+    rota =
+        null;
+
+    proximoPonto =
+        null;
+
+    _pontoAnteriorRota =
+        '';
 
     if (local == null) {
-      estado = 'SEM_ROTA';
+      estado =
+          'SEM_ROTA';
 
       mensagem =
           'Escolha um destino.';
@@ -421,9 +573,13 @@ class ControleNavegacao extends ChangeNotifier {
     _ultimoPonto =
         pontoAtual;
 
+    _pontoAnteriorRota =
+        '';
+
     _calcularRota();
 
-    if (estado == 'ROTA_ATIVA') {
+    if (estado ==
+        'ROTA_ATIVA') {
       mensagem =
           'Navegando para ${destino!.nome}.';
 
@@ -444,19 +600,13 @@ class ControleNavegacao extends ChangeNotifier {
       return true;
     }
 
-    if (estado == 'DESTINO_ALCANCADO') {
-      await feedbackTatil.executar(
-        FeedbackTatil.chegada,
-      );
-
-      await _falar(
-        'Você já está no destino ${destino!.nome}.',
-      );
-
+    if (estado ==
+        'DESTINO_ALCANCADO') {
       return true;
     }
 
-    if (estado == 'SEM_CAMINHO') {
+    if (estado ==
+        'SEM_CAMINHO') {
       await feedbackTatil.executar(
         FeedbackTatil.erro,
       );
@@ -475,15 +625,20 @@ class ControleNavegacao extends ChangeNotifier {
       return;
     }
 
-    rota = calculador.calcular(
+    rota =
+        calculador.calcular(
       grafo: grafo,
       origem: pontoAtual,
-      destino: destino!.pontoId,
+      destino:
+          destino!.pontoId,
     );
 
     if (rota == null) {
-      estado = 'SEM_CAMINHO';
-      proximoPonto = null;
+      estado =
+          'SEM_CAMINHO';
+
+      proximoPonto =
+          null;
 
       mensagem =
           'Não foi possível encontrar uma rota.';
@@ -494,17 +649,11 @@ class ControleNavegacao extends ChangeNotifier {
       return;
     }
 
-    if (rota!.pontos.length == 1) {
-      estado =
-          'DESTINO_ALCANCADO';
-
-      proximoPonto = null;
-
-      mensagem =
-          'Destino alcançado.';
-
-      orientacaoAtual =
-          'Destino alcançado.';
+    if (rota!.pontos.length ==
+        1) {
+      unawaited(
+        _concluirDestino(),
+      );
 
       return;
     }
@@ -522,13 +671,13 @@ class ControleNavegacao extends ChangeNotifier {
     );
   }
 
-  Future<void>
-      _processarMudancaLocalizacao() async {
+  Future<void> _processarMudancaLocalizacao() async {
     final novoPonto =
         pontoAtual;
 
     if (novoPonto.isEmpty ||
-        novoPonto == _ultimoPonto) {
+        novoPonto ==
+            _ultimoPonto) {
       return;
     }
 
@@ -545,27 +694,12 @@ class ControleNavegacao extends ChangeNotifier {
 
     if (novoPonto ==
         destino!.pontoId) {
-      estado =
-          'DESTINO_ALCANCADO';
+      _pontoAnteriorRota =
+          pontoAnterior;
 
-      proximoPonto = null;
-
-      mensagem =
-          'Destino alcançado.';
-
-      orientacaoAtual =
-          'Destino alcançado.';
+      await _concluirDestino();
 
       notifyListeners();
-
-      await feedbackTatil.executar(
-        FeedbackTatil.chegada,
-      );
-
-      await _falar(
-        'Destino alcançado. '
-        'Você chegou a ${destino!.nome}.',
-      );
 
       return;
     }
@@ -573,28 +707,113 @@ class ControleNavegacao extends ChangeNotifier {
     final pontoEsperado =
         proximoPonto;
 
+    final seguiuRota =
+        pontoEsperado != null &&
+            novoPonto ==
+                pontoEsperado;
+
+    final voltou =
+        _pontoAnteriorRota
+                .isNotEmpty &&
+            novoPonto ==
+                _pontoAnteriorRota;
+
+    if (seguiuRota) {
+      _pontoAnteriorRota =
+          pontoAnterior;
+
+      _calcularRota();
+
+      if (rota == null ||
+          proximoPonto == null) {
+        notifyListeners();
+
+        return;
+      }
+
+      await _gerarOrientacao(
+        anterior:
+            pontoAnterior,
+        atual:
+            novoPonto,
+        proximo:
+            proximoPonto!,
+        rotaRecalculada:
+            false,
+      );
+
+      notifyListeners();
+
+      return;
+    }
+
+    _pontoAnteriorRota =
+        pontoAnterior;
+
+    await _recalcularPorDesvio(
+      pontoAnterior:
+          pontoAnterior,
+      novoPonto:
+          novoPonto,
+      voltou:
+          voltou,
+    );
+
+    notifyListeners();
+  }
+
+  Future<void> _recalcularPorDesvio({
+    required String pontoAnterior,
+    required String novoPonto,
+    required bool voltou,
+  }) async {
     _calcularRota();
 
     if (rota == null ||
         proximoPonto == null) {
-      notifyListeners();
+      if (estado ==
+          'SEM_CAMINHO') {
+        await _falar(
+          orientacaoAtual,
+        );
+      }
+
       return;
     }
 
-    final rotaRecalculada =
-        pontoEsperado != null &&
-        novoPonto !=
-            pontoEsperado;
+    estado =
+        'ROTA_RECALCULADA';
 
-    await _gerarOrientacao(
-      anterior: pontoAnterior,
-      atual: novoPonto,
-      proximo: proximoPonto!,
-      rotaRecalculada:
-          rotaRecalculada,
+    mensagem =
+        'Rota recalculada.';
+
+    await feedbackTatil.executar(
+      FeedbackTatil.recalculo,
     );
 
-    notifyListeners();
+    await Future.delayed(
+      const Duration(
+        milliseconds: 500,
+      ),
+    );
+
+    final prefixo =
+        voltou
+            ? 'Você retornou pelo caminho anterior. Recalculando rota.'
+            : 'Você saiu da rota. Recalculando rota.';
+
+    await _gerarOrientacao(
+      anterior:
+          pontoAnterior,
+      atual:
+          novoPonto,
+      proximo:
+          proximoPonto!,
+      rotaRecalculada:
+          true,
+      mensagemRecalculo:
+          prefixo,
+    );
   }
 
   Future<void> _gerarOrientacao({
@@ -602,6 +821,7 @@ class ControleNavegacao extends ChangeNotifier {
     required String atual,
     required String proximo,
     required bool rotaRecalculada,
+    String? mensagemRecalculo,
   }) async {
     final pontoAnterior =
         grafo.buscarPonto(
@@ -625,24 +845,36 @@ class ControleNavegacao extends ChangeNotifier {
           'Siga em frente.';
 
       mensagem =
-          'Navegação em andamento.';
+          rotaRecalculada
+              ? 'Rota recalculada.'
+              : 'Navegação em andamento.';
 
       await feedbackTatil.executar(
         FeedbackTatil.frente,
       );
 
-      await _falar(
-        orientacaoAtual,
-      );
+      if (rotaRecalculada) {
+        await _falar(
+          '${mensagemRecalculo ?? 'Rota recalculada.'} '
+          '$orientacaoAtual',
+        );
+      } else {
+        await _falar(
+          orientacaoAtual,
+        );
+      }
 
       return;
     }
 
     final orientacao =
         geradorOrientacao.calcular(
-      anterior: pontoAnterior,
-      atual: pontoAtual,
-      proximo: pontoProximo,
+      anterior:
+          pontoAnterior,
+      atual:
+          pontoAtual,
+      proximo:
+          pontoProximo,
     );
 
     final instrucao =
@@ -655,6 +887,10 @@ class ControleNavegacao extends ChangeNotifier {
       instrucao,
     );
 
+    await _feedbackDaOrientacao(
+      orientacaoAtual,
+    );
+
     if (rotaRecalculada) {
       estado =
           'ROTA_RECALCULADA';
@@ -662,22 +898,8 @@ class ControleNavegacao extends ChangeNotifier {
       mensagem =
           'Rota recalculada.';
 
-      await feedbackTatil.executar(
-        FeedbackTatil.recalculo,
-      );
-
-      await Future.delayed(
-        const Duration(
-          milliseconds: 500,
-        ),
-      );
-
-      await _feedbackDaOrientacao(
-        orientacaoAtual,
-      );
-
       await _falar(
-        'Rota recalculada. '
+        '${mensagemRecalculo ?? 'Rota recalculada.'} '
         '$orientacaoAtual',
       );
 
@@ -690,13 +912,162 @@ class ControleNavegacao extends ChangeNotifier {
     mensagem =
         'Navegando para ${destino!.nome}.';
 
-    await _feedbackDaOrientacao(
-      orientacaoAtual,
-    );
-
     await _falar(
       orientacaoAtual,
     );
+  }
+
+  Future<void> _concluirDestino() async {
+    final destinoAtual =
+        destino;
+
+    if (destinoAtual ==
+        null) {
+      return;
+    }
+
+    final abordagem =
+        destinoAtual
+            .abordagemVindoDe(
+      _pontoAnteriorRota,
+    );
+
+    final mensagemChegada =
+        _mensagemChegada(
+      destino:
+          destinoAtual,
+      abordagem:
+          abordagem,
+    );
+
+    estado =
+        'DESTINO_ALCANCADO';
+
+    mensagem =
+        'Destino alcançado.';
+
+    orientacaoAtual =
+        mensagemChegada;
+
+    notifyListeners();
+
+    await feedbackTatil.executar(
+      FeedbackTatil.chegada,
+    );
+
+    await _falar(
+      mensagemChegada,
+    );
+
+    destino =
+        null;
+
+    rota =
+        null;
+
+    proximoPonto =
+        null;
+
+    _pontoAnteriorRota =
+        '';
+
+    estado =
+        'SEM_ROTA';
+
+    mensagem =
+        'Escolha um novo destino.';
+
+    orientacaoAtual =
+        'Escolha um novo destino para iniciar outra navegação.';
+
+    notifyListeners();
+  }
+
+  String _mensagemChegada({
+    required Local destino,
+    PoiApproach? abordagem,
+  }) {
+    if (abordagem == null) {
+      return 'Você chegou ao ponto de acesso de ${destino.nome}. '
+          'Siga o piso tátil até a entrada.';
+    }
+
+    final partes =
+        <String>[
+      'Você chegou ao ponto de acesso de ${destino.nome}.',
+    ];
+
+    final lado =
+        _descricaoLado(
+      abordagem.side,
+    );
+
+    if (lado.isNotEmpty) {
+      partes.add(
+        'Seu destino está $lado.',
+      );
+    }
+
+    final distancia =
+        abordagem.distanceMeters;
+
+    if (distancia != null &&
+        distancia > 0) {
+      partes.add(
+        'Siga o piso tátil por aproximadamente '
+        '${_formatarDistancia(distancia)}.',
+      );
+    }
+
+    final instrucao =
+        abordagem.instruction
+            ?.trim();
+
+    if (instrucao != null &&
+        instrucao.isNotEmpty) {
+      partes.add(
+        instrucao,
+      );
+    }
+
+    return partes.join(
+      ' ',
+    );
+  }
+
+  String _descricaoLado(
+    PoiSide side,
+  ) {
+    switch (side) {
+      case PoiSide.left:
+        return 'à esquerda';
+
+      case PoiSide.right:
+        return 'à direita';
+
+      case PoiSide.front:
+        return 'à frente';
+
+      case PoiSide.unknown:
+        return '';
+    }
+  }
+
+  String _formatarDistancia(
+    double distancia,
+  ) {
+    if (distancia ==
+        distancia.roundToDouble()) {
+      final metros =
+          distancia.toInt();
+
+      return metros ==
+              1
+          ? '1 metro'
+          : '$metros metros';
+    }
+
+    return '${distancia.toStringAsFixed(1).replaceAll('.', ',')} metros';
   }
 
   Future<void> _feedbackDaOrientacao(
@@ -775,11 +1146,20 @@ class ControleNavegacao extends ChangeNotifier {
   }
 
   Future<void> cancelarRota() async {
-    destino = null;
-    rota = null;
-    proximoPonto = null;
+    destino =
+        null;
 
-    estado = 'SEM_ROTA';
+    rota =
+        null;
+
+    proximoPonto =
+        null;
+
+    _pontoAnteriorRota =
+        '';
+
+    estado =
+        'SEM_ROTA';
 
     mensagem =
         'Escolha um destino.';
