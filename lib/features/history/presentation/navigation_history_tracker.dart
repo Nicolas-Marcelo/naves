@@ -12,13 +12,9 @@ class NavigationHistoryTracker {
     required this.navegacao,
     required this.service,
   }) {
-    localizacao.addListener(
-      _mudancaDetectada,
-    );
+    localizacao.addListener(_mudancaDetectada);
 
-    navegacao.addListener(
-      _mudancaDetectada,
-    );
+    navegacao.addListener(_mudancaDetectada);
 
     _agendarProcessamento();
   }
@@ -48,9 +44,7 @@ class NavigationHistoryTracker {
       return;
     }
 
-    unawaited(
-      _processar(),
-    );
+    unawaited(_processar());
   }
 
   Future<void> _processar() async {
@@ -60,52 +54,38 @@ class NavigationHistoryTracker {
 
     try {
       do {
-        _processamentoPendente =
-            false;
+        _processamentoPendente = false;
 
         await _processarEstado();
-      } while (
-          _processamentoPendente &&
-              !_disposed);
+      } while (_processamentoPendente && !_disposed);
     } finally {
       _processando = false;
     }
   }
 
-  Future<void>
-      _processarEstado() async {
+  Future<void> _processarEstado() async {
     if (_disposed) return;
 
-    final estado =
-        navegacao.estado;
+    final estado = navegacao.estado;
 
-    final noAtual =
-        localizacao.noAtual;
+    final noAtual = localizacao.noAtual;
 
     if (estado == 'ROTA_ATIVA') {
       if (_historyId == null) {
-        await _iniciarHistorico(
-          noAtual,
-        );
+        await _iniciarHistorico(noAtual);
       }
 
-      await _registrarNo(
-        noAtual,
-      );
+      await _registrarNo(noAtual);
     }
 
-    if (estado ==
-        'DESTINO_ALCANCADO') {
-      await _registrarNo(
-        noAtual,
-      );
+    if (estado == 'DESTINO_ALCANCADO') {
+      await _registrarNo(noAtual);
 
       await _finalizarHistorico();
     }
 
     if (_historyId != null &&
-        _ultimoEstado ==
-            'ROTA_ATIVA' &&
+        _ultimoEstado == 'ROTA_ATIVA' &&
         estado == 'SEM_ROTA') {
       await _cancelarHistorico();
     }
@@ -113,16 +93,12 @@ class NavigationHistoryTracker {
     _ultimoEstado = estado;
   }
 
-  Future<void> _iniciarHistorico(
-    String noAtual,
-  ) async {
-    if (_historyId != null ||
-        noAtual.isEmpty) {
+  Future<void> _iniciarHistorico(String noAtual) async {
+    if (_historyId != null || noAtual.isEmpty) {
       return;
     }
 
-    final destino =
-        navegacao.destino;
+    final destino = navegacao.destino;
 
     if (destino == null) return;
 
@@ -138,8 +114,7 @@ class NavigationHistoryTracker {
       _historyId = id;
 
       if (id != null) {
-        _ultimoNoRegistrado =
-            noAtual;
+        _ultimoNoRegistrado = noAtual;
 
         debugPrint(
           '[HISTÓRICO USUÁRIO] '
@@ -156,29 +131,21 @@ class NavigationHistoryTracker {
     }
   }
 
-  Future<void> _registrarNo(
-    String noAtual,
-  ) async {
-    final historyId =
-        _historyId;
+  Future<void> _registrarNo(String noAtual) async {
+    final historyId = _historyId;
 
     if (historyId == null ||
         noAtual.isEmpty ||
-        noAtual ==
-            _ultimoNoRegistrado) {
+        noAtual == _ultimoNoRegistrado) {
       return;
     }
 
     try {
-      await service.registrarNo(
-        historyId: historyId,
-        nodeCode: noAtual,
-      );
+      await service.registrarNo(historyId: historyId, nodeCode: noAtual);
 
       if (_disposed) return;
 
-      _ultimoNoRegistrado =
-          noAtual;
+      _ultimoNoRegistrado = noAtual;
 
       debugPrint(
         '[HISTÓRICO USUÁRIO] '
@@ -192,17 +159,13 @@ class NavigationHistoryTracker {
     }
   }
 
-  Future<void>
-      _finalizarHistorico() async {
-    final historyId =
-        _historyId;
+  Future<void> _finalizarHistorico() async {
+    final historyId = _historyId;
 
     if (historyId == null) return;
 
     try {
-      await service.finalizar(
-        historyId,
-      );
+      await service.finalizar(historyId);
 
       debugPrint(
         '[HISTÓRICO USUÁRIO] '
@@ -218,17 +181,13 @@ class NavigationHistoryTracker {
     }
   }
 
-  Future<void>
-      _cancelarHistorico() async {
-    final historyId =
-        _historyId;
+  Future<void> _cancelarHistorico() async {
+    final historyId = _historyId;
 
     if (historyId == null) return;
 
     try {
-      await service.cancelar(
-        historyId,
-      );
+      await service.cancelar(historyId);
 
       debugPrint(
         '[HISTÓRICO USUÁRIO] '
@@ -254,12 +213,8 @@ class NavigationHistoryTracker {
 
     _disposed = true;
 
-    localizacao.removeListener(
-      _mudancaDetectada,
-    );
+    localizacao.removeListener(_mudancaDetectada);
 
-    navegacao.removeListener(
-      _mudancaDetectada,
-    );
+    navegacao.removeListener(_mudancaDetectada);
   }
 }

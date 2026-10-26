@@ -4,11 +4,7 @@ import '../data/auth_api_service.dart';
 import '../data/auth_storage.dart';
 import '../domain/auth_user.dart';
 
-enum AuthStatus {
-  inicializando,
-  autenticado,
-  naoAutenticado,
-}
+enum AuthStatus { inicializando, autenticado, naoAutenticado }
 
 class AuthController extends ChangeNotifier {
   final AuthApiService api;
@@ -20,10 +16,7 @@ class AuthController extends ChangeNotifier {
   String? _erro;
   bool _carregando = false;
 
-  AuthController({
-    required this.api,
-    required this.storage,
-  });
+  AuthController({required this.api, required this.storage});
 
   AuthStatus get status => _status;
   AuthUser? get user => _user;
@@ -32,9 +25,7 @@ class AuthController extends ChangeNotifier {
   bool get carregando => _carregando;
 
   bool get autenticado {
-    return _status == AuthStatus.autenticado &&
-        _token != null &&
-        _user != null;
+    return _status == AuthStatus.autenticado && _token != null && _user != null;
   }
 
   Future<void> iniciar() async {
@@ -68,10 +59,7 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  Future<bool> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<bool> login({required String email, required String password}) async {
     if (_carregando) return false;
 
     _carregando = true;
@@ -79,10 +67,7 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await api.login(
-        email: email,
-        password: password,
-      );
+      final result = await api.login(email: email, password: password);
 
       await storage.salvarToken(result.token);
 
@@ -115,11 +100,7 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await api.register(
-        name: name,
-        email: email,
-        password: password,
-      );
+      await api.register(name: name, email: email, password: password);
 
       return true;
     } on AuthApiException catch (error) {

@@ -7,30 +7,20 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    final bootstrap =
-        await NavescenceBootstrap.criar();
+    final bootstrap = await NavescenceBootstrap.criar();
 
     runApp(
       NavescenceApp(
         runtime: bootstrap.runtime,
         auth: bootstrap.auth,
-        historyService:
-            bootstrap.historyService,
+        historyService: bootstrap.historyService,
       ),
     );
   } catch (error, stackTrace) {
-    debugPrint(
-      '[NAVESCENCE] Erro durante inicialização: $error',
-    );
+    debugPrint('[NAVESCENCE] Erro durante inicialização: $error');
 
-    debugPrint(
-      '$stackTrace',
-    );
+    debugPrint('$stackTrace');
 
-    runApp(
-      NavescenceStartupErrorApp(
-        error: error,
-      ),
-    );
+    runApp(NavescenceStartupErrorApp(error: error));
   }
 }

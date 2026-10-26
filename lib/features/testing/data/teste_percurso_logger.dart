@@ -7,90 +7,57 @@ import '../domain/evento_teste_percurso.dart';
 import 'coletor_ble_teste.dart';
 
 class TestePercursoLogger {
-  final Stopwatch _cronometro =
-      Stopwatch();
+  final Stopwatch _cronometro = Stopwatch();
 
-  final List<
-      EventoTestePercurso> _eventos =
-      [];
+  final List<EventoTestePercurso> _eventos = [];
 
   int _numeroTeste = 0;
 
   String? _testeAtual;
   String? _sentidoAtual;
 
-  bool _emAndamento =
-      false;
+  bool _emAndamento = false;
 
-  bool get emAndamento =>
-      _emAndamento;
+  bool get emAndamento => _emAndamento;
 
-  Duration get tempoDecorrido =>
-      _cronometro.elapsed;
+  Duration get tempoDecorrido => _cronometro.elapsed;
 
-  String? get testeAtual =>
-      _testeAtual;
+  String? get testeAtual => _testeAtual;
 
-  String? get sentidoAtual =>
-      _sentidoAtual;
+  String? get sentidoAtual => _sentidoAtual;
 
-  List<EventoTestePercurso>
-      get eventos =>
-          List.unmodifiable(
-            _eventos,
-          );
+  List<EventoTestePercurso> get eventos => List.unmodifiable(_eventos);
 
-  List<EventoTestePercurso>
-      get eventosTesteAtual {
+  List<EventoTestePercurso> get eventosTesteAtual {
     if (_testeAtual == null) {
       return [];
     }
 
-    return _eventos
-        .where(
-          (evento) =>
-              evento.teste ==
-              _testeAtual,
-        )
-        .toList();
+    return _eventos.where((evento) => evento.teste == _testeAtual).toList();
   }
 
-  void iniciarTeste({
-    required String sentido,
-    required SnapshotBleTeste ble,
-  }) {
+  void iniciarTeste({required String sentido, required SnapshotBleTeste ble}) {
     if (_emAndamento) return;
 
     _numeroTeste++;
 
-    _testeAtual =
-        'TESTE_${_numeroTeste.toString().padLeft(3, '0')}';
+    _testeAtual = 'TESTE_${_numeroTeste.toString().padLeft(3, '0')}';
 
-    _sentidoAtual =
-        sentido;
+    _sentidoAtual = sentido;
 
-    _emAndamento =
-        true;
+    _emAndamento = true;
 
     _cronometro
       ..reset()
       ..start();
 
-    registrarSnapshot(
-      evento: 'INICIO',
-      ble: ble,
-    );
+    registrarSnapshot(evento: 'INICIO', ble: ble);
   }
 
-  void registrarLeituraBle(
-    SnapshotBleTeste ble,
-  ) {
+  void registrarLeituraBle(SnapshotBleTeste ble) {
     if (!_emAndamento) return;
 
-    registrarSnapshot(
-      evento: 'LEITURA_BLE',
-      ble: ble,
-    );
+    registrarSnapshot(evento: 'LEITURA_BLE', ble: ble);
   }
 
   void registrarPassagem({
@@ -100,29 +67,20 @@ class TestePercursoLogger {
     if (!_emAndamento) return;
 
     registrarSnapshot(
-      evento:
-          'PASSAGEM_MANUAL',
-      sensorManual:
-          sensor,
-      ble:
-          ble,
+      evento: 'PASSAGEM_MANUAL',
+      sensorManual: sensor,
+      ble: ble,
     );
   }
 
-  void finalizarTeste({
-    required SnapshotBleTeste ble,
-  }) {
+  void finalizarTeste({required SnapshotBleTeste ble}) {
     if (!_emAndamento) return;
 
-    registrarSnapshot(
-      evento: 'FIM',
-      ble: ble,
-    );
+    registrarSnapshot(evento: 'FIM', ble: ble);
 
     _cronometro.stop();
 
-    _emAndamento =
-        false;
+    _emAndamento = false;
   }
 
   void registrarSnapshot({
@@ -130,46 +88,28 @@ class TestePercursoLogger {
     required SnapshotBleTeste ble,
     String? sensorManual,
   }) {
-    if (_testeAtual == null ||
-        _sentidoAtual == null) {
+    if (_testeAtual == null || _sentidoAtual == null) {
       return;
     }
 
-    final agora =
-        DateTime.now();
+    final agora = DateTime.now();
 
     _eventos.add(
       EventoTestePercurso(
-        teste:
-            _testeAtual!,
-        sentido:
-            _sentidoAtual!,
-        timestamp:
-            agora,
-        timestampEpochMs:
-            agora
-                .millisecondsSinceEpoch,
-        tempoMs:
-            _cronometro
-                .elapsedMilliseconds,
-        evento:
-            evento,
-        sensorManual:
-            sensorManual,
-        sensorBle:
-            ble.sensorMaisForte,
-        rssiS01:
-            ble.rssiS01,
-        m15S01:
-            ble.m15S01,
-        rssiS02:
-            ble.rssiS02,
-        m15S02:
-            ble.m15S02,
-        rssiS03:
-            ble.rssiS03,
-        m15S03:
-            ble.m15S03,
+        teste: _testeAtual!,
+        sentido: _sentidoAtual!,
+        timestamp: agora,
+        timestampEpochMs: agora.millisecondsSinceEpoch,
+        tempoMs: _cronometro.elapsedMilliseconds,
+        evento: evento,
+        sensorManual: sensorManual,
+        sensorBle: ble.sensorMaisForte,
+        rssiS01: ble.rssiS01,
+        m15S01: ble.m15S01,
+        rssiS02: ble.rssiS02,
+        m15S02: ble.m15S02,
+        rssiS03: ble.rssiS03,
+        m15S03: ble.m15S03,
       ),
     );
   }
@@ -187,8 +127,7 @@ class TestePercursoLogger {
   }
 
   String gerarCsv() {
-    final buffer =
-        StringBuffer();
+    final buffer = StringBuffer();
 
     buffer.writeln(
       'teste,'
@@ -208,24 +147,14 @@ class TestePercursoLogger {
       'm15_NAV_S03',
     );
 
-    for (final evento
-        in _eventos) {
-      buffer.writeln(
-        evento
-            .toCsvValues()
-            .map(
-              _escapeCsv,
-            )
-            .join(','),
-      );
+    for (final evento in _eventos) {
+      buffer.writeln(evento.toCsvValues().map(_escapeCsv).join(','));
     }
 
     return buffer.toString();
   }
 
-  String _escapeCsv(
-    String value,
-  ) {
+  String _escapeCsv(String value) {
     final precisaAspas =
         value.contains(',') ||
         value.contains('"') ||
@@ -244,11 +173,9 @@ class TestePercursoLogger {
       return;
     }
 
-    final csv =
-        gerarCsv();
+    final csv = gerarCsv();
 
-    final agora =
-        DateTime.now();
+    final agora = DateTime.now();
 
     final nome =
         'navescence_teste_ble_'
@@ -259,30 +186,14 @@ class TestePercursoLogger {
         '${agora.minute.toString().padLeft(2, '0')}'
         '${agora.second.toString().padLeft(2, '0')}.csv';
 
-    final arquivo =
-        File(
-      '${Directory.systemTemp.path}/$nome',
-    );
+    final arquivo = File('${Directory.systemTemp.path}/$nome');
 
-    await arquivo.writeAsString(
-      csv,
-      encoding:
-          utf8,
-      flush:
-          true,
-    );
+    await arquivo.writeAsString(csv, encoding: utf8, flush: true);
 
     await SharePlus.instance.share(
       ShareParams(
-        text:
-            'Teste BLE NAVESCENCE',
-        files: [
-          XFile(
-            arquivo.path,
-            mimeType:
-                'text/csv',
-          ),
-        ],
+        text: 'Teste BLE NAVESCENCE',
+        files: [XFile(arquivo.path, mimeType: 'text/csv')],
       ),
     );
   }

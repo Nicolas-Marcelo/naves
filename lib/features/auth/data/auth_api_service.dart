@@ -8,10 +8,7 @@ class AuthApiException implements Exception {
   final String code;
   final int? statusCode;
 
-  const AuthApiException(
-    this.code, {
-    this.statusCode,
-  });
+  const AuthApiException(this.code, {this.statusCode});
 
   @override
   String toString() => code;
@@ -21,20 +18,15 @@ class AuthLoginResult {
   final String token;
   final AuthUser user;
 
-  const AuthLoginResult({
-    required this.token,
-    required this.user,
-  });
+  const AuthLoginResult({required this.token, required this.user});
 }
 
 class AuthApiService {
   final String baseUrl;
   final http.Client _client;
 
-  AuthApiService({
-    required this.baseUrl,
-    http.Client? client,
-  }) : _client = client ?? http.Client();
+  AuthApiService({required this.baseUrl, http.Client? client})
+    : _client = client ?? http.Client();
 
   Uri _uri(String path) {
     final normalizedBase = baseUrl.endsWith('/')
@@ -51,9 +43,7 @@ class AuthApiService {
   }) async {
     final response = await _client.post(
       _uri('/api/auth/register'),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'name': name.trim(),
         'email': email.trim(),
@@ -65,10 +55,7 @@ class AuthApiService {
 
     if (response.statusCode == 200 || response.statusCode == 201) return;
 
-    throw AuthApiException(
-      _errorCode(body),
-      statusCode: response.statusCode,
-    );
+    throw AuthApiException(_errorCode(body), statusCode: response.statusCode);
   }
 
   Future<AuthLoginResult> login({
@@ -77,22 +64,14 @@ class AuthApiService {
   }) async {
     final response = await _client.post(
       _uri('/api/auth/login'),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'email': email.trim(),
-        'password': password,
-      }),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email.trim(), 'password': password}),
     );
 
     final body = _decode(response.body);
 
     if (response.statusCode != 200) {
-      throw AuthApiException(
-        _errorCode(body),
-        statusCode: response.statusCode,
-      );
+      throw AuthApiException(_errorCode(body), statusCode: response.statusCode);
     }
 
     final token = body['token']?.toString();
@@ -107,10 +86,7 @@ class AuthApiService {
       throw const AuthApiException('INVALID_AUTH_RESPONSE');
     }
 
-    return AuthLoginResult(
-      token: token,
-      user: AuthUser.fromJson(userJson),
-    );
+    return AuthLoginResult(token: token, user: AuthUser.fromJson(userJson));
   }
 
   Future<AuthUser> me(String token) async {
@@ -125,10 +101,7 @@ class AuthApiService {
     final body = _decode(response.body);
 
     if (response.statusCode != 200) {
-      throw AuthApiException(
-        _errorCode(body),
-        statusCode: response.statusCode,
-      );
+      throw AuthApiException(_errorCode(body), statusCode: response.statusCode);
     }
 
     final userJson = body['user'] ?? body;
@@ -143,22 +116,15 @@ class AuthApiService {
   Future<void> reenviarVerificacao(String email) async {
     final response = await _client.post(
       _uri('/api/auth/resend-verification'),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'email': email.trim(),
-      }),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email.trim()}),
     );
 
     if (response.statusCode == 200 || response.statusCode == 204) return;
 
     final body = _decode(response.body);
 
-    throw AuthApiException(
-      _errorCode(body),
-      statusCode: response.statusCode,
-    );
+    throw AuthApiException(_errorCode(body), statusCode: response.statusCode);
   }
 
   Map<String, dynamic> _decode(String body) {

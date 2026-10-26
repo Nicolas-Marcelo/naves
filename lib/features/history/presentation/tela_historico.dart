@@ -5,10 +5,7 @@ import '../data/navigation_history_service.dart';
 class TelaHistorico extends StatefulWidget {
   final NavigationHistoryService service;
 
-  const TelaHistorico({
-    super.key,
-    required this.service,
-  });
+  const TelaHistorico({super.key, required this.service});
 
   @override
   State<TelaHistorico> createState() => _TelaHistoricoState();
@@ -34,9 +31,7 @@ class _TelaHistoricoState extends State<TelaHistorico> {
     try {
       final resposta = await widget.service.carregarHoje();
 
-      final historicos = resposta
-          .whereType<Map<String, dynamic>>()
-          .toList();
+      final historicos = resposta.whereType<Map<String, dynamic>>().toList();
 
       if (!mounted) return;
 
@@ -57,21 +52,14 @@ class _TelaHistoricoState extends State<TelaHistorico> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Histórico de navegação'),
-      ),
-      body: RefreshIndicator(
-        onRefresh: _carregar,
-        child: _conteudo(),
-      ),
+      appBar: AppBar(title: const Text('Histórico de navegação')),
+      body: RefreshIndicator(onRefresh: _carregar, child: _conteudo()),
     );
   }
 
   Widget _conteudo() {
     if (_carregando) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_erro != null) {
@@ -109,10 +97,7 @@ class _TelaHistoricoState extends State<TelaHistorico> {
         padding: const EdgeInsets.all(24),
         children: [
           const SizedBox(height: 80),
-          const Icon(
-            Icons.route_outlined,
-            size: 64,
-          ),
+          const Icon(Icons.route_outlined, size: 64),
           const SizedBox(height: 16),
           Text(
             'Nenhuma navegação registrada hoje.',
@@ -135,9 +120,7 @@ class _TelaHistoricoState extends State<TelaHistorico> {
       itemCount: _historicos.length,
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        return _HistoricoCard(
-          historico: _historicos[index],
-        );
+        return _HistoricoCard(historico: _historicos[index]);
       },
     );
   }
@@ -146,9 +129,7 @@ class _TelaHistoricoState extends State<TelaHistorico> {
 class _HistoricoCard extends StatelessWidget {
   final Map<String, dynamic> historico;
 
-  const _HistoricoCard({
-    required this.historico,
-  });
+  const _HistoricoCard({required this.historico});
 
   @override
   Widget build(BuildContext context) {
@@ -161,20 +142,14 @@ class _HistoricoCard extends StatelessWidget {
 
     final status = historico['status']?.toString() ?? '';
 
-    final inicio = _formatarHorario(
-      historico['startedAt']?.toString(),
-    );
+    final inicio = _formatarHorario(historico['startedAt']?.toString());
 
-    final fim = _formatarHorario(
-      historico['finishedAt']?.toString(),
-    );
+    final fim = _formatarHorario(historico['finishedAt']?.toString());
 
     final eventosRaw = historico['events'];
 
     final eventos = eventosRaw is List
-        ? eventosRaw
-            .whereType<Map<String, dynamic>>()
-            .toList()
+        ? eventosRaw.whereType<Map<String, dynamic>>().toList()
         : <Map<String, dynamic>>[];
 
     return Card(
@@ -185,21 +160,17 @@ class _HistoricoCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(
-                  Icons.navigation_outlined,
-                ),
+                const Icon(Icons.navigation_outlined),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     destino,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-                _StatusChip(
-                  status: status,
-                ),
+                _StatusChip(status: status),
               ],
             ),
             const SizedBox(height: 14),
@@ -232,37 +203,28 @@ class _HistoricoCard extends StatelessWidget {
               const Divider(height: 28),
               Text(
                 'Trajeto',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
               ...eventos.map((evento) {
-                final node =
-                    evento['nodeCode']?.toString() ?? '-';
+                final node = evento['nodeCode']?.toString() ?? '-';
 
-                final label =
-                    evento['label']?.toString();
+                final label = evento['label']?.toString();
 
                 final horario = _formatarHorario(
                   evento['occurredAt']?.toString(),
                 );
 
                 return Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: 8,
-                  ),
+                  padding: const EdgeInsets.only(bottom: 8),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Padding(
-                        padding: EdgeInsets.only(
-                          top: 4,
-                        ),
-                        child: Icon(
-                          Icons.circle,
-                          size: 8,
-                        ),
+                        padding: EdgeInsets.only(top: 4),
+                        child: Icon(Icons.circle, size: 8),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -288,26 +250,18 @@ class _HistoricoCard extends StatelessWidget {
     );
   }
 
-  static String _formatarHorario(
-    String? valor,
-  ) {
+  static String _formatarHorario(String? valor) {
     if (valor == null || valor.isEmpty) {
       return '';
     }
 
-    final data = DateTime.tryParse(
-      valor,
-    )?.toLocal();
+    final data = DateTime.tryParse(valor)?.toLocal();
 
     if (data == null) return '';
 
-    final hora = data.hour
-        .toString()
-        .padLeft(2, '0');
+    final hora = data.hour.toString().padLeft(2, '0');
 
-    final minuto = data.minute
-        .toString()
-        .padLeft(2, '0');
+    final minuto = data.minute.toString().padLeft(2, '0');
 
     return '$hora:$minuto';
   }
@@ -329,27 +283,18 @@ class _LinhaInformacao extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          icon,
-          size: 20,
-        ),
+        Icon(icon, size: 20),
         const SizedBox(width: 10),
         Expanded(
           child: RichText(
             text: TextSpan(
-              style: DefaultTextStyle.of(
-                context,
-              ).style,
+              style: DefaultTextStyle.of(context).style,
               children: [
                 TextSpan(
                   text: '$titulo: ',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                TextSpan(
-                  text: valor,
-                ),
+                TextSpan(text: valor),
               ],
             ),
           ),
@@ -362,23 +307,17 @@ class _LinhaInformacao extends StatelessWidget {
 class _StatusChip extends StatelessWidget {
   final String status;
 
-  const _StatusChip({
-    required this.status,
-  });
+  const _StatusChip({required this.status});
 
   @override
   Widget build(BuildContext context) {
     return Chip(
       visualDensity: VisualDensity.compact,
-      label: Text(
-        _descricao(status),
-      ),
+      label: Text(_descricao(status)),
     );
   }
 
-  String _descricao(
-    String status,
-  ) {
+  String _descricao(String status) {
     switch (status) {
       case 'ACTIVE':
         return 'Em andamento';
@@ -390,9 +329,7 @@ class _StatusChip extends StatelessWidget {
         return 'Cancelada';
 
       default:
-        return status.isEmpty
-            ? 'Desconhecido'
-            : status;
+        return status.isEmpty ? 'Desconhecido' : status;
     }
   }
 }

@@ -1,9 +1,4 @@
-enum PoiSide {
-  left,
-  right,
-  front,
-  unknown,
-}
+enum PoiSide { left, right, front, unknown }
 
 class PoiApproach {
   const PoiApproach({
@@ -11,33 +6,37 @@ class PoiApproach {
     required this.side,
     this.distanceMeters,
     this.instruction,
+    this.exitSide = PoiSide.unknown,
+    this.exitInstruction,
   });
 
   final String fromNodeId;
+
   final PoiSide side;
+
   final double? distanceMeters;
   final String? instruction;
 
-  factory PoiApproach.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  final PoiSide exitSide;
+  final String? exitInstruction;
+
+  factory PoiApproach.fromJson(Map<String, dynamic> json) {
     return PoiApproach(
       fromNodeId: '${json['fromNodeId'] ?? ''}',
-      side: _sideFromJson(
-        '${json['side'] ?? ''}',
-      ),
-      distanceMeters: _doubleOrNull(
-        json['distanceMeters'],
-      ),
-      instruction: _stringOrNull(
-        json['instruction'],
-      ),
+
+      side: _sideFromJson('${json['side'] ?? ''}'),
+
+      distanceMeters: _doubleOrNull(json['distanceMeters']),
+
+      instruction: _stringOrNull(json['instruction']),
+
+      exitSide: _sideFromJson('${json['exitSide'] ?? ''}'),
+
+      exitInstruction: _stringOrNull(json['exitInstruction']),
     );
   }
 
-  static PoiSide _sideFromJson(
-    String value,
-  ) {
+  static PoiSide _sideFromJson(String value) {
     switch (value.trim().toUpperCase()) {
       case 'LEFT':
         return PoiSide.left;
@@ -53,29 +52,25 @@ class PoiApproach {
     }
   }
 
-  static double? _doubleOrNull(
-    dynamic value,
-  ) {
-    if (value == null) return null;
+  static double? _doubleOrNull(dynamic value) {
+    if (value == null) {
+      return null;
+    }
 
     if (value is num) {
       return value.toDouble();
     }
 
-    return double.tryParse(
-      '$value',
-    );
+    return double.tryParse('$value');
   }
 
-  static String? _stringOrNull(
-    dynamic value,
-  ) {
-    if (value == null) return null;
+  static String? _stringOrNull(dynamic value) {
+    if (value == null) {
+      return null;
+    }
 
     final texto = '$value'.trim();
 
-    return texto.isEmpty
-        ? null
-        : texto;
+    return texto.isEmpty ? null : texto;
   }
 }

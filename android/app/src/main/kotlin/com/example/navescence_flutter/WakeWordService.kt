@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import org.json.JSONObject
@@ -58,33 +59,13 @@ class WakeWordService : Service(), RecognitionListener {
         private const val TEMPO_MAXIMO_COMANDO_MS = 7000L
         private const val INTERVALO_MONITOR_MS = 150L
 
-        /*
-         * Quanto maior, mais difícil ativar por engano.
-         *
-         * 0.88 é nosso ponto inicial.
-         * Depois podemos ajustar com os testes reais.
-         */
         private const val CONFIANCA_MINIMA_WAKE = 0.88
 
-        /*
-         * Evita sons extremamente curtos ou falas longas
-         * sendo interpretados como "Nave".
-         */
         private const val DURACAO_MINIMA_WAKE = 0.18
         private const val DURACAO_MAXIMA_WAKE = 1.40
 
-        /*
-         * Evita uma mesma fala disparar novamente logo
-         * após uma ativação.
-         */
         private const val COOLDOWN_WAKE_MS = 2000L
 
-        /*
-         * Wake propositalmente simples.
-         *
-         * [unk] permite ao recognizer rejeitar áudio que
-         * não pertence ao vocabulário desejado.
-         */
         private const val GRAMMAR_WAKE =
             """["nave", "[unk]"]"""
     }
@@ -98,6 +79,8 @@ class WakeWordService : Service(), RecognitionListener {
     private var model: Model? = null
     private var recognizer: Recognizer? = null
     private var speechService: SpeechService? = null
+
+    private var wakeLock: PowerManager.WakeLock? = null
 
     @Volatile
     private var modo = Modo.DESLIGADO
@@ -121,10 +104,13 @@ class WakeWordService : Service(), RecognitionListener {
     private var trocandoModo = false
 
     private val handler =
-        Handler(Looper.getMainLooper())
+        Handler(
+            Looper.getMainLooper()
+        )
 
     private val monitorComando =
         object : Runnable {
+
             override fun run() {
                 verificarTempoComando()
 
@@ -141,13 +127,21 @@ class WakeWordService : Service(), RecognitionListener {
         super.onCreate()
 
         criarCanalNotificacao()
+
         iniciarForeground()
+
+        adquirirWakeLock()
 
         handler.post(
             monitorComando
         )
 
         carregarModelo()
+
+        Log.d(
+            TAG,
+            "WakeWordService criado."
+        )
     }
 
     override fun onStartCommand(
@@ -155,26 +149,39 @@ class WakeWordService : Service(), RecognitionListener {
         flags: Int,
         startId: Int
     ): Int {
-        when (intent?.action) {
+
+        garantirWakeLock()
+
+        when (
+            intent?.action
+        ) {
             ACTION_OUVIR_NAVE -> {
-                modoDesejado = Modo.WAKE
+                modoDesejado =
+                    Modo.WAKE
+
                 aplicarModoDesejado()
             }
 
             ACTION_OUVIR_COMANDO -> {
-                modoDesejado = Modo.COMANDO
+                modoDesejado =
+                    Modo.COMANDO
+
                 aplicarModoDesejado()
             }
 
             ACTION_DESLIGAR,
             ACTION_PAUSAR -> {
-                modoDesejado = Modo.DESLIGADO
+                modoDesejado =
+                    Modo.DESLIGADO
+
                 aplicarModoDesejado()
             }
 
             ACTION_INICIAR,
             null -> {
-                if (model == null) {
+                if (
+                    model == null
+                ) {
                     carregarModelo()
                 }
             }
@@ -227,13 +234,94 @@ class WakeWordService : Service(), RecognitionListener {
                 .setSmallIcon(
                     android.R.drawable.ic_btn_speak_now
                 )
-                .setOngoing(true)
+                .setOngoing(
+                    true
+                )
+                .setOnlyAlertOnce(
+                    true
+                )
                 .build()
 
         startForeground(
             NOTIFICATION_ID,
             notification
         )
+    }
+
+    private fun adquirirWakeLock() {
+        if (
+            wakeLock?.isHeld ==
+            true
+        ) {
+            return
+        }
+
+        try {
+            val powerManager =
+                getSystemService(
+                    POWER_SERVICE
+                ) as PowerManager
+
+            wakeLock =
+                powerManager.newWakeLock(
+                    PowerManager.PARTIAL_WAKE_LOCK,
+                    "$packageName:WakeWordLock"
+                ).apply {
+                    setReferenceCounted(
+                        false
+                    )
+
+                    acquire()
+                }
+
+            Log.d(
+                TAG,
+                "WAKE LOCK adquirido."
+            )
+        } catch (
+            exception: Exception
+        ) {
+            Log.e(
+                TAG,
+                "Erro ao adquirir WAKE LOCK.",
+                exception
+            )
+        }
+    }
+
+    private fun garantirWakeLock() {
+        if (
+            wakeLock?.isHeld !=
+            true
+        ) {
+            adquirirWakeLock()
+        }
+    }
+
+    private fun liberarWakeLock() {
+        try {
+            if (
+                wakeLock?.isHeld ==
+                true
+            ) {
+                wakeLock?.release()
+
+                Log.d(
+                    TAG,
+                    "WAKE LOCK liberado."
+                )
+            }
+        } catch (
+            exception: Exception
+        ) {
+            Log.e(
+                TAG,
+                "Erro ao liberar WAKE LOCK.",
+                exception
+            )
+        } finally {
+            wakeLock = null
+        }
     }
 
     private fun carregarModelo() {
@@ -257,8 +345,11 @@ class WakeWordService : Service(), RecognitionListener {
             "model-pt",
             "model-pt",
             { loadedModel ->
-                carregandoModelo = false
-                model = loadedModel
+                carregandoModelo =
+                    false
+
+                model =
+                    loadedModel
 
                 Log.d(
                     TAG,
@@ -268,7 +359,8 @@ class WakeWordService : Service(), RecognitionListener {
                 aplicarModoDesejado()
             },
             { exception ->
-                carregandoModelo = false
+                carregandoModelo =
+                    false
 
                 Log.e(
                     TAG,
@@ -287,12 +379,18 @@ class WakeWordService : Service(), RecognitionListener {
             return
         }
 
-        if (model == null) {
+        garantirWakeLock()
+
+        if (
+            model == null
+        ) {
             carregarModelo()
             return
         }
 
-        when (modoDesejado) {
+        when (
+            modoDesejado
+        ) {
             Modo.DESLIGADO ->
                 desligarReconhecimento()
 
@@ -306,9 +404,12 @@ class WakeWordService : Service(), RecognitionListener {
 
     private fun iniciarWake() {
         if (
-            modo == Modo.WAKE &&
-            speechService != null &&
-            recognizer != null
+            modo ==
+            Modo.WAKE &&
+            speechService !=
+            null &&
+            recognizer !=
+            null
         ) {
             return
         }
@@ -316,9 +417,12 @@ class WakeWordService : Service(), RecognitionListener {
         val currentModel =
             model ?: return
 
-        trocandoModo = true
+        trocandoModo =
+            true
 
         try {
+            garantirWakeLock()
+
             liberarReconhecimento()
 
             recognizer =
@@ -327,14 +431,9 @@ class WakeWordService : Service(), RecognitionListener {
                     SAMPLE_RATE,
                     GRAMMAR_WAKE
                 ).apply {
-                    /*
-                     * Faz o Vosk devolver:
-                     * palavra
-                     * confiança
-                     * início
-                     * fim
-                     */
-                    setWords(true)
+                    setWords(
+                        true
+                    )
                 }
 
             speechService =
@@ -343,18 +442,23 @@ class WakeWordService : Service(), RecognitionListener {
                     SAMPLE_RATE
                 )
 
-            modo = Modo.WAKE
+            modo =
+                Modo.WAKE
 
-            speechService?.startListening(
-                this
-            )
+            speechService
+                ?.startListening(
+                    this
+                )
 
             Log.d(
                 TAG,
                 "MODO -> WAKE RESTRITO SEGURO"
             )
-        } catch (exception: Exception) {
-            modo = Modo.DESLIGADO
+        } catch (
+            exception: Exception
+        ) {
+            modo =
+                Modo.DESLIGADO
 
             Log.e(
                 TAG,
@@ -362,15 +466,19 @@ class WakeWordService : Service(), RecognitionListener {
                 exception
             )
         } finally {
-            trocandoModo = false
+            trocandoModo =
+                false
         }
     }
 
     private fun iniciarComando() {
         if (
-            modo == Modo.COMANDO &&
-            speechService != null &&
-            recognizer != null
+            modo ==
+            Modo.COMANDO &&
+            speechService !=
+            null &&
+            recognizer !=
+            null
         ) {
             return
         }
@@ -378,9 +486,12 @@ class WakeWordService : Service(), RecognitionListener {
         val currentModel =
             model ?: return
 
-        trocandoModo = true
+        trocandoModo =
+            true
 
         try {
+            garantirWakeLock()
+
             liberarReconhecimento()
 
             recognizer =
@@ -395,27 +506,37 @@ class WakeWordService : Service(), RecognitionListener {
                     SAMPLE_RATE
                 )
 
-            comandoParcial = ""
+            comandoParcial =
+                ""
 
             val agora =
                 System.currentTimeMillis()
 
-            inicioComando = agora
-            ultimaMudancaComando = agora
+            inicioComando =
+                agora
 
-            modo = Modo.COMANDO
+            ultimaMudancaComando =
+                agora
 
-            speechService?.startListening(
-                this,
-                TEMPO_MAXIMO_COMANDO_MS.toInt()
-            )
+            modo =
+                Modo.COMANDO
+
+            speechService
+                ?.startListening(
+                    this,
+                    TEMPO_MAXIMO_COMANDO_MS
+                        .toInt()
+                )
 
             Log.d(
                 TAG,
                 "MODO -> COMANDO"
             )
-        } catch (exception: Exception) {
-            modo = Modo.DESLIGADO
+        } catch (
+            exception: Exception
+        ) {
+            modo =
+                Modo.DESLIGADO
 
             Log.e(
                 TAG,
@@ -427,64 +548,89 @@ class WakeWordService : Service(), RecognitionListener {
                 ACTION_TIMEOUT_COMANDO
             )
         } finally {
-            trocandoModo = false
+            trocandoModo =
+                false
         }
     }
 
     private fun desligarReconhecimento() {
         if (
-            modo == Modo.DESLIGADO &&
-            speechService == null &&
-            recognizer == null
+            modo ==
+            Modo.DESLIGADO &&
+            speechService ==
+            null &&
+            recognizer ==
+            null
         ) {
             return
         }
 
-        trocandoModo = true
+        trocandoModo =
+            true
 
         try {
             liberarReconhecimento()
 
-            modo = Modo.DESLIGADO
+            modo =
+                Modo.DESLIGADO
 
             Log.d(
                 TAG,
                 "MODO -> DESLIGADO"
             )
         } finally {
-            trocandoModo = false
+            trocandoModo =
+                false
         }
     }
 
     private fun liberarReconhecimento() {
         try {
-            speechService?.cancel()
-        } catch (_: Exception) {
+            speechService
+                ?.cancel()
+        } catch (
+            _: Exception
+        ) {
         }
 
         try {
-            speechService?.shutdown()
-        } catch (_: Exception) {
+            speechService
+                ?.shutdown()
+        } catch (
+            _: Exception
+        ) {
         }
 
-        speechService = null
+        speechService =
+            null
 
         try {
-            recognizer?.close()
-        } catch (_: Exception) {
+            recognizer
+                ?.close()
+        } catch (
+            _: Exception
+        ) {
         }
 
-        recognizer = null
+        recognizer =
+            null
 
-        comandoParcial = ""
-        inicioComando = 0L
-        ultimaMudancaComando = 0L
+        comandoParcial =
+            ""
 
-        modo = Modo.DESLIGADO
+        inicioComando =
+            0L
+
+        ultimaMudancaComando =
+            0L
+
+        modo =
+            Modo.DESLIGADO
     }
 
     override fun onPartialResult(
-        hypothesis: String?
+        hypothesis:
+            String?
     ) {
         if (
             destruindo ||
@@ -499,20 +645,16 @@ class WakeWordService : Service(), RecognitionListener {
                 "partial"
             )
 
-        if (texto.isEmpty()) {
+        if (
+            texto.isEmpty()
+        ) {
             return
         }
 
-        when (modo) {
+        when (
+            modo
+        ) {
             Modo.WAKE -> {
-                /*
-                 * MUITO IMPORTANTE:
-                 *
-                 * resultado parcial nunca mais ativa
-                 * o assistente.
-                 *
-                 * Serve apenas para diagnóstico.
-                 */
                 Log.d(
                     TAG,
                     "WAKE [partial ignorado]: $texto"
@@ -530,12 +672,14 @@ class WakeWordService : Service(), RecognitionListener {
                 )
             }
 
-            Modo.DESLIGADO -> Unit
+            Modo.DESLIGADO ->
+                Unit
         }
     }
 
     override fun onResult(
-        hypothesis: String?
+        hypothesis:
+            String?
     ) {
         if (
             destruindo ||
@@ -544,7 +688,9 @@ class WakeWordService : Service(), RecognitionListener {
             return
         }
 
-        when (modo) {
+        when (
+            modo
+        ) {
             Modo.WAKE -> {
                 avaliarWakeFinal(
                     hypothesis
@@ -558,7 +704,9 @@ class WakeWordService : Service(), RecognitionListener {
                         "text"
                     )
 
-                if (texto.isEmpty()) {
+                if (
+                    texto.isEmpty()
+                ) {
                     return
                 }
 
@@ -572,12 +720,14 @@ class WakeWordService : Service(), RecognitionListener {
                 )
             }
 
-            Modo.DESLIGADO -> Unit
+            Modo.DESLIGADO ->
+                Unit
         }
     }
 
     override fun onFinalResult(
-        hypothesis: String?
+        hypothesis:
+            String?
     ) {
         if (
             destruindo ||
@@ -586,7 +736,9 @@ class WakeWordService : Service(), RecognitionListener {
             return
         }
 
-        when (modo) {
+        when (
+            modo
+        ) {
             Modo.WAKE -> {
                 avaliarWakeFinal(
                     hypothesis
@@ -600,7 +752,9 @@ class WakeWordService : Service(), RecognitionListener {
                         "text"
                     )
 
-                if (texto.isEmpty()) {
+                if (
+                    texto.isEmpty()
+                ) {
                     return
                 }
 
@@ -614,16 +768,20 @@ class WakeWordService : Service(), RecognitionListener {
                 )
             }
 
-            Modo.DESLIGADO -> Unit
+            Modo.DESLIGADO ->
+                Unit
         }
     }
 
     private fun avaliarWakeFinal(
-        hypothesis: String?
+        hypothesis:
+            String?
     ) {
         if (
-            modo != Modo.WAKE ||
-            hypothesis.isNullOrBlank()
+            modo !=
+            Modo.WAKE ||
+            hypothesis
+                .isNullOrBlank()
         ) {
             return
         }
@@ -633,7 +791,10 @@ class WakeWordService : Service(), RecognitionListener {
                 hypothesis
             )
 
-        if (avaliacao == null) {
+        if (
+            avaliacao ==
+            null
+        ) {
             Log.d(
                 TAG,
                 "WAKE rejeitado: resultado incompatível."
@@ -680,8 +841,10 @@ class WakeWordService : Service(), RecognitionListener {
             System.currentTimeMillis()
 
         if (
-            ultimoWakeAceitoEm > 0 &&
-            agora - ultimoWakeAceitoEm <
+            ultimoWakeAceitoEm >
+            0 &&
+            agora -
+            ultimoWakeAceitoEm <
             COOLDOWN_WAKE_MS
         ) {
             Log.d(
@@ -699,7 +862,8 @@ class WakeWordService : Service(), RecognitionListener {
     }
 
     private fun analisarWake(
-        hypothesis: String
+        hypothesis:
+            String
     ): WakeAvaliacao? {
         return try {
             val json =
@@ -715,10 +879,10 @@ class WakeWordService : Service(), RecognitionListener {
                     )
                 )
 
-            /*
-             * Somente exatamente "nave".
-             */
-            if (texto != "nave") {
+            if (
+                texto !=
+                "nave"
+            ) {
                 return null
             }
 
@@ -727,20 +891,18 @@ class WakeWordService : Service(), RecognitionListener {
                     "result"
                 ) ?: return null
 
-            /*
-             * Queremos exatamente uma palavra.
-             *
-             * Se houver mais palavras, não era
-             * nosso wake limpo.
-             */
-            if (resultado.length() != 1) {
+            if (
+                resultado.length() !=
+                1
+            ) {
                 return null
             }
 
             val palavra =
-                resultado.getJSONObject(
-                    0
-                )
+                resultado
+                    .getJSONObject(
+                        0
+                    )
 
             val palavraReconhecida =
                 normalizar(
@@ -776,14 +938,22 @@ class WakeWordService : Service(), RecognitionListener {
                 )
 
             val duracao =
-                fim - inicio
+                fim -
+                inicio
 
             WakeAvaliacao(
-                texto = texto,
-                confianca = confianca,
-                duracao = duracao
+                texto =
+                    texto,
+
+                confianca =
+                    confianca,
+
+                duracao =
+                    duracao
             )
-        } catch (exception: Exception) {
+        } catch (
+            exception: Exception
+        ) {
             Log.e(
                 TAG,
                 "Erro ao analisar wake.",
@@ -796,7 +966,8 @@ class WakeWordService : Service(), RecognitionListener {
 
     private fun palavraChaveDetectada() {
         if (
-            modo != Modo.WAKE ||
+            modo !=
+            Modo.WAKE ||
             trocandoModo
         ) {
             return
@@ -823,14 +994,18 @@ class WakeWordService : Service(), RecognitionListener {
     }
 
     private fun registrarComandoParcial(
-        texto: String
+        texto:
+            String
     ) {
         val normalizado =
             normalizar(
                 texto
             )
 
-        if (normalizado.isEmpty()) {
+        if (
+            normalizado
+                .isEmpty()
+        ) {
             return
         }
 
@@ -848,7 +1023,8 @@ class WakeWordService : Service(), RecognitionListener {
 
     private fun verificarTempoComando() {
         if (
-            modo != Modo.COMANDO ||
+            modo !=
+            Modo.COMANDO ||
             trocandoModo
         ) {
             return
@@ -861,7 +1037,10 @@ class WakeWordService : Service(), RecognitionListener {
             agora -
             inicioComando
 
-        if (comandoParcial.isEmpty()) {
+        if (
+            comandoParcial
+                .isEmpty()
+        ) {
             if (
                 tempoTotal >=
                 TEMPO_COMANDO_VAZIO_MS
@@ -887,10 +1066,12 @@ class WakeWordService : Service(), RecognitionListener {
     }
 
     private fun enviarComando(
-        texto: String
+        texto:
+            String
     ) {
         if (
-            modo != Modo.COMANDO ||
+            modo !=
+            Modo.COMANDO ||
             trocandoModo
         ) {
             return
@@ -901,7 +1082,9 @@ class WakeWordService : Service(), RecognitionListener {
                 texto
             )
 
-        if (comando.isEmpty()) {
+        if (
+            comando.isEmpty()
+        ) {
             timeoutComando()
             return
         }
@@ -937,7 +1120,8 @@ class WakeWordService : Service(), RecognitionListener {
 
     private fun timeoutComando() {
         if (
-            modo != Modo.COMANDO ||
+            modo !=
+            Modo.COMANDO ||
             trocandoModo
         ) {
             return
@@ -959,22 +1143,59 @@ class WakeWordService : Service(), RecognitionListener {
     }
 
     private fun normalizar(
-        texto: String
+        texto:
+            String
     ): String {
         return texto
             .lowercase()
-            .replace("á", "a")
-            .replace("à", "a")
-            .replace("â", "a")
-            .replace("ã", "a")
-            .replace("é", "e")
-            .replace("ê", "e")
-            .replace("í", "i")
-            .replace("ó", "o")
-            .replace("ô", "o")
-            .replace("õ", "o")
-            .replace("ú", "u")
-            .replace("ç", "c")
+            .replace(
+                "á",
+                "a"
+            )
+            .replace(
+                "à",
+                "a"
+            )
+            .replace(
+                "â",
+                "a"
+            )
+            .replace(
+                "ã",
+                "a"
+            )
+            .replace(
+                "é",
+                "e"
+            )
+            .replace(
+                "ê",
+                "e"
+            )
+            .replace(
+                "í",
+                "i"
+            )
+            .replace(
+                "ó",
+                "o"
+            )
+            .replace(
+                "ô",
+                "o"
+            )
+            .replace(
+                "õ",
+                "o"
+            )
+            .replace(
+                "ú",
+                "u"
+            )
+            .replace(
+                "ç",
+                "c"
+            )
             .replace(
                 Regex(
                     "[^a-z0-9\\s]"
@@ -982,18 +1203,23 @@ class WakeWordService : Service(), RecognitionListener {
                 " "
             )
             .replace(
-                Regex("\\s+"),
+                Regex(
+                    "\\s+"
+                ),
                 " "
             )
             .trim()
     }
 
     private fun extrairCampo(
-        json: String?,
-        campo: String
+        json:
+            String?,
+        campo:
+            String
     ): String {
         if (
-            json.isNullOrBlank()
+            json
+                .isNullOrBlank()
         ) {
             return ""
         }
@@ -1007,13 +1233,16 @@ class WakeWordService : Service(), RecognitionListener {
                     ""
                 )
                 .trim()
-        } catch (_: Exception) {
+        } catch (
+            _: Exception
+        ) {
             ""
         }
     }
 
     private fun emitirBroadcast(
-        action: String
+        action:
+            String
     ) {
         val intent =
             Intent(
@@ -1030,7 +1259,8 @@ class WakeWordService : Service(), RecognitionListener {
     }
 
     override fun onError(
-        exception: Exception?
+        exception:
+            Exception?
     ) {
         if (
             destruindo ||
@@ -1093,7 +1323,8 @@ class WakeWordService : Service(), RecognitionListener {
     }
 
     override fun onDestroy() {
-        destruindo = true
+        destruindo =
+            true
 
         handler.removeCallbacks(
             monitorComando
@@ -1105,24 +1336,41 @@ class WakeWordService : Service(), RecognitionListener {
         liberarReconhecimento()
 
         try {
-            model?.close()
-        } catch (_: Exception) {
+            model
+                ?.close()
+        } catch (
+            _: Exception
+        ) {
         }
 
-        model = null
+        model =
+            null
+
+        liberarWakeLock()
+
+        Log.d(
+            TAG,
+            "WakeWordService destruído."
+        )
 
         super.onDestroy()
     }
 
     override fun onBind(
-        intent: Intent?
+        intent:
+            Intent?
     ): IBinder? {
         return null
     }
 
     private data class WakeAvaliacao(
-        val texto: String,
-        val confianca: Double,
-        val duracao: Double
+        val texto:
+            String,
+
+        val confianca:
+            Double,
+
+        val duracao:
+            Double
     )
 }

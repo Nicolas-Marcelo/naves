@@ -90,16 +90,11 @@ class NavescenceBootstrap {
 
     await runtime.iniciar();
 
-    final authApi = AuthApiService(
-      baseUrl: apiBaseUrl,
-    );
+    final authApi = AuthApiService(baseUrl: apiBaseUrl);
 
     const authStorage = AuthStorage();
 
-    final auth = AuthController(
-      api: authApi,
-      storage: authStorage,
-    );
+    final auth = AuthController(api: authApi, storage: authStorage);
 
     await auth.iniciar();
 
